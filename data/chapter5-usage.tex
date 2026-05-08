@@ -1,0 +1,116 @@
+% !Mode:: "TeX:UTF-8"
+\chapter{仿真验证}
+
+根据算法 \ref{alg:shortest_data_NOILC}，本节通过数值仿真验证所提基于最少输入输出数据的迭代学习控制框架的有效性。首先介绍受控系统的数学模型及参数设置；然后利用最短测试实验设计生成信息量丰富的离线数据，并展示联合 Hankel 矩阵的秩能够同理论分析结果一样逐步增长的过程；最后分别针对两种不同形式的期望轨迹，执行数据驱动 ILC，并分析跟踪性能。
+
+\section{系统设置}
+
+考虑一个随机设置的单输入单输出的离散线性时不变系统，其状态空间模型为
+\[
+A = \begin{bmatrix}
+	0.183 & 0.045 \\
+	-0.172 & -0.166
+\end{bmatrix},\quad
+B = \begin{bmatrix}
+	-0.45 \\ 0.526
+\end{bmatrix},\quad
+C = \begin{bmatrix}
+	0.81 & -0.67
+\end{bmatrix},\quad
+D = 0
+\]
+系统阶次 \(n = 2\)，输入维数 \(m = 1\)，输出维数 \(p = 1\)，且系统为最小实现（能控能观）。初始状态设为零向量，即每次迭代开始时状态重置为零。
+
+\section{最短测试实验数据生成}
+
+采用最短测试实验设计生成离线数据。设置联合 Hankel 深度 \(L = 261\)，目标秩为
+\[
+R_{\text{target}} = L m + n = 261 \times 1 + 2 = 263
+\]
+实验过程中，联合 Hankel 矩阵的秩随数据长度的变化如表 \ref{tab:rank_growth} 所示。当数据长度达到 \(J = 523\) 时，秩首次达到目标值 263，此时数据长度满足理论最小值 \(J = L + L m + n -1 = 523\)，此后继续增加数据，秩也不再上升。实际结果与理论值完全一致，验证了最短测试实验的最优性。
+
+\begin{table}[htbp]
+	\centering
+	\caption{最短测试实验秩增长过程}
+	\begin{tabular}{c|c}
+		\toprule
+		数据长度 \(J\) & 联合 Hankel 矩阵秩 \(\operatorname{rank}(H)\) \\
+		\midrule
+		261 & 1 \\
+		262 & 2 \\
+		\vdots & \vdots \\
+		521 & 261 \\
+		522 & 262 \\
+		523 & 263 \\
+		524 & 263 \\
+		525 & 263 \\
+		526 & 263 \\
+		\bottomrule
+	\end{tabular}
+	\label{tab:rank_growth}
+\end{table}
+
+\section{数据驱动 ILC 跟踪结果}
+
+利用生成的离线数据构造零初始条件响应矩阵 \(W_0\) 并设计学习更新律，权重矩阵取 \(Q = I\)，\(R = 0.1 I\)。迭代学习控制执行 100 次，停止容差为 \(10^{-5}\)。为验证所提算法对不同期望轨迹的适应能力，我们设计两个具有不同变化规律的轨迹。
+
+\subsection{轨迹一：衰减正弦波}
+
+第一个期望轨迹为
+\[
+r_1(t) = 
+\begin{cases}
+	0, & t = 0,1,\\
+	0.5 \cdot (0.98)^{t} \sin(5t), & t = 2,3,\dots,260
+\end{cases}
+\]
+该轨迹前 \(n=2\) 步设为零（与零初始状态匹配），后续步为指数衰减的正弦信号，频率较高，变化较快。
+
+执行迭代学习控制后，跟踪误差范数随迭代次数的变化曲线如图~\ref{fig:conv1} 所示。可见误差范数单调下降，验证了算法的单调收敛性。图~\ref{fig:track1} 给出了最后一次迭代的实际输出与期望轨迹的对比。从图中可以看出，由于系统相对度为 1，除了初始时刻必然存在误差外，在其他的时间采样点上，系统的实际输出对期望轨迹仍有较为良好的跟踪性能，可认为所提算法能够实现对于期望轨迹的跟踪任务。
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.8\textwidth]{收敛1.png}
+	\caption{轨迹一的跟踪误差范数收敛曲线}
+	\label{fig:conv1}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.8\textwidth]{sin.png}
+	\caption{轨迹一的最终迭代输出与期望轨迹对比}
+	\label{fig:track1}
+\end{figure}
+
+
+\subsection{轨迹二：组合衰减正余弦波}
+
+为进一步考察算法对多频率复合波形的适应能力，第二个期望轨迹设计为两种不同频率、不同衰减因子的正余弦波的叠加：
+\[
+r_2(t) = 
+\begin{cases}
+	0, & t = 0,1,\\
+	0.5 \cdot (0.98)^{t} \sin(3t) + 0.2 \cdot (0.96)^{t} cos(7t), & t = 2,3,\dots,260
+\end{cases}
+\]
+该轨迹在 $t \ge 2$ 时刻包含角频率为 $3$ 和 $7$ 的两个分量，振幅分别以 $(0.98)^t$ 和 $(0.96)^t$ 衰减，波形变化较轨迹一更为复杂，频谱更丰富，能更严格地考验算法的泛化跟踪性能。
+
+在此轨迹下的迭代学习控制误差范数变化如图~\ref{fig:conv2} 所示。与轨迹一类似，误差范数随迭代次数的增加单调递减，未出现瞬态波动，再次印证了算法的单调收敛性。最后一次迭代后的输出与期望轨迹的比较见图~\ref{fig:track2}。可以看出，尽管轨迹由多频率成分构成，实际输出在 $t \ge 2$ 时刻仍能与期望轨迹高度吻合，这证明了数据驱动迭代学习控制算法对复合频率轨迹亦能实现有效的高性能跟踪。
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.8\textwidth]{收敛2.png}
+	\caption{轨迹二的跟踪误差范数收敛曲线}
+	\label{fig:conv2}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.8\textwidth]{sincos.png}
+	\caption{轨迹二的最终迭代输出与期望轨迹对比}
+	\label{fig:track2}
+\end{figure}
+
+\section{本章小结}
+
+从上述实验中可以得到，基于最短测试实验生成的数据满足 Willems' 基本引理的条件，进一步地，本文算法利用测试实验数据，成功实现了对不同复杂程度期望轨迹的高精度快速跟踪，且均表现出单调收敛特性，充分验证了所提方法在数据驱动框架下的有效性与实用性。

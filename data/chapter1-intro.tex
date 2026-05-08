@@ -1,0 +1,76 @@
+% !Mode:: "TeX:UTF-8"
+\chapter{绪论}
+
+\section{课题来源与背景}
+
+
+
+\section{选题意义}
+
+\section{基于模型的范数最优 ILC}
+
+范数最优迭代学习控制（NOILC）被视为基于模型的ILC解决方案的基准。它无需调整参数即可保证跟踪误差范数的单调收敛。NOILC有许多成功的应用，例如工业机器人（Gunnarsson and Norrlöf, 2001）、自由电子激光器（Freeman et al., 2012）、肉鸡养殖（Johansen et al., 2020）、医疗保健（Freeman et al., 2012）、增材制造（Wang et al., 2018）等。
+
+基于模型的范数最优ILC可表述为如下凸优化问题：
+\begin{equation}
+	\begin{aligned}
+		\underset{\mathbf{u_{k+1}}}{\text{minimise}} \quad & \frac{1}{2} \|\mathbf{e_{k+1}}\|_Q^2 + \frac{1}{2} \|\mathbf{u_{k+1}} - \mathbf{u_k}\|_R^2 \\
+		\text{s.t.} \quad & \mathbf{e_{k+1}} = \mathbf{r} - \mathbf{G} \mathbf{u_{k+1}} - \mathbf{d}
+	\end{aligned}
+	\label{eq:model_based_NOILC}
+\end{equation}
+其中 \(Q > 0\) 和 \(R > 0\) 分别为输出误差和输入变化量的正定加权矩阵。其代价函数为
+\begin{equation}
+	J(\mathbf{u_{k+1}}) = \|\mathbf{e_{k+1}}\|_{Q}^{2} + \|\mathbf{u_{k+1}} - \mathbf{u_{k}}\|_{R}^{2}
+	\label{eq:cost_NOILC}
+\end{equation}
+代价函数中的第一项最小化跟踪误差，第二项通过沿迭代轴 \(k\) 平滑输入 \(\mathbf{u_k}\) 来增强鲁棒性。此外，第二项确保所得控制更新律满足零收敛条件。
+
+\begin{remark}
+	在一些研究中，例如 Gunnarsson and Norrlöf (2001); Bolder and Oomen (2015)，代价函数包含项 \(\|\mathbf{u_k}\|_S^2\)，其中 \(S\) 为加权矩阵。该项可以防止执行器饱和并降低高频灵敏度。然而，包含该项可能会阻碍算法实现完美跟踪（Bristow et al., 2006）。由于本文不考虑高频问题，因此省略该项。
+\end{remark}
+
+NOILC的控制更新律由下式给出
+\begin{equation}
+	\mathbf{u_{k+1}} = \arg \min_{\mathbf{u_{k+1}}} J(\mathbf{u_{k+1}})
+	\label{eq:update_law_NOILC}
+\end{equation}
+对 \(J(\mathbf{u_{k+1}})\) 关于 \(\mathbf{u_{k+1}}\) 求偏导并令其为零，可得最优控制律为
+\begin{equation}
+	\mathbf{u_{k+1}} = \mathbf{u_k} + (\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q \mathbf{e_k}
+	\label{eq:optimal_control}
+\end{equation}
+则误差演化关系为
+\begin{equation}
+	{\mathbf{e_{k+1}} = (I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1} \mathbf{e_k} = (I + \mathbf{G} \mathbf{G}^*)^{-1} \mathbf{e_k}}
+	\label{eq:error_evolution}
+\end{equation}
+其中 \(\mathbf{G}^*\) 为伴随系统，定义为 \(\mathbf{G}^* = R^{-1} \mathbf{G}^\top Q\)。NOILC具有优良的收敛性质，如以下命题所示。
+
+\begin{proposition}[Amann et al., 1996]
+	\label{propshoulian}
+	对于 ILC 系统 \eqref{eq:sys}，假设完美跟踪可实现，即 \(\mathbf{r} \in \operatorname{Range}(\mathbf{G})\)，其中 \(\operatorname{Range}(\cdot)\) 表示矩阵的列空间，并令迭代学习控制由 \eqref{eq:optimal_control} 给出。则以下结论成立：
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\| \leq \|\mathbf{e_k}\|,
+		\label{eq:monotonic}
+	\end{equation}
+	\begin{equation}
+		\lim_{k \to \infty} (\mathbf{u_{k+1}} - \mathbf{u_k}) = 0, \quad \lim_{k \to \infty} \mathbf{e_k} = 0
+		\label{eq:converg}
+	\end{equation}
+\end{proposition}
+
+\begin{proposition}[Amann et al., 1996]
+	\label{propsudu}
+	若算子 \(\mathbf{G} \mathbf{G}^*\) 满足 \(\mathbf{G} \mathbf{G}^* \geq \sigma^2 I\) 对某个 \(\sigma > 0\) 成立，则
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\| \leq \frac{1}{1 + \sigma^2} \|\mathbf{e_k}\|,
+		\label{eq:exp_convergence}
+	\end{equation}
+	\begin{equation}
+		\lim_{k \to \infty} \mathbf{e_k} = 0
+		\label{eq:exp_limit}
+	\end{equation}
+\end{proposition}
+
+命题 \ref{propshoulian} 表明，不仅当前迭代与上一次迭代之间的输入差收敛到零，而且跟踪误差也收敛到零。命题 \ref{propsudu} 表明，如果算子 \(\mathbf{G}\mathbf{G}^*\) 正定，则跟踪误差范数将以指数速率单调收敛到零。

@@ -1,0 +1,265 @@
+% !Mode:: "TeX:UTF-8"
+\chapter{基于最少输入输出数据的迭代学习控制设计与分析}
+\label{chapter-basic}
+
+如前文所述，基于 Willems' 基本引理（引理 \ref{lem:willems}）的数据驱动 NOILC 算法能够等价于基于模型的范数最优控制。然而，这一等价性的前提是输入数据必须满足严格的持续激励条件。具体而言，我们需要输入数据 \(\mathbf{u_{d,{[0,J-1]}}}\) 满足阶数为 \(T_{ini}+T+n\) 的持续激励条件，于是联合 Hankel 矩阵的列空间张成所有长度为 \(L=T_{ini}+T\) 的系统轨迹，即
+\begin{equation}
+	\operatorname{col\,span}\bigl(H_{L,J})\bigr) = \mathcal{G}_{L},
+	\label{eq:willems_rank}
+\end{equation}
+然而，持续激励条件要求数据长度 \(J\) 至少为 \((m+1)(L+n)-1\)，对于阶数为 $n$、控制时域为 $T$ 的系统，这意味着可能需要采集极其庞大的离线数据集。这不仅导致实验成本高昂，也在实际工程应用中构成了严峻的瓶颈。
+
+为了克服这一缺陷，本节提出一种基于最短数据生成机制的数据驱动 NOILC 设计方案。该方案的核心在于剖析联合 Hankel 矩阵的秩条件，并通过设计输入序列（避开低维仿射集），逐步增加联合 Hankel 矩阵的秩，直至目标秩 \(mL+n\)，以理论上的最短数据长度 \((m+1)L+n-1\) 达到 Willems' 基本引理的应用标准。
+
+\section{联合 Hankel 矩阵的秩条件与上界分析}
+
+在阐述最短数据生成机制之前，我们需要先明确联合 Hankel 矩阵秩的意义。
+
+由状态空间模型可得如下线性关系：
+\begin{equation}
+	\begin{bmatrix} \mathbf{u} \\ \mathbf{y} \end{bmatrix}
+	= \begin{bmatrix} I_{L m} & 0 \\ \Gamma_L & \Omega_L \end{bmatrix}
+	\begin{bmatrix} \mathbf{u} \\ x_0 \end{bmatrix}
+\end{equation}
+其中：
+\begin{itemize}
+	\item \(I_{L m}\) 是 \(L m \times L m\) 的单位矩阵；
+	\item \(\Gamma_L\) 是 \(L p \times L m\) 的 Toeplitz 矩阵，由系统的 Markov 参数（脉冲响应）构成，它将输入 \(\mathbf{u}\) 映射为零初始状态下的输出响应；
+	\item \(\Omega_L\) 是 \(L p \times n\) 的矩阵，其形式为
+	\[
+	\Omega_L = \begin{bmatrix} C \\ C A \\ \vdots \\ C A^{L-1} \end{bmatrix}
+	\]
+	即系统的能观性矩阵取前 \(L\) 块行。它将 \(x_0\) 映射为零输入下的输出响应。
+\end{itemize}
+因此，映射 \(\begin{bmatrix} \mathbf{u} \\ x_0 \end{bmatrix} \mapsto \mathbf{w}\) 是线性的。
+
+考虑由系统 \eqref{eq:sys} 生成的所有长度为 \(L\) 的输入-输出轨迹的集合构成的线性空间，称为行为子空间，记作 \(\mathcal{G}_L\)。由于轨迹 $\mathbf{w}$ 由输入和状态 \((\mathbf{u}, x_0)\) 唯一确定，且上述映射是线性的，其像空间的维数等于定义域的维数减去映射的核的维数。若系统是可观测的（即能观性矩阵 \(\Omega_L\) 列满秩），则不同的初始状态 \(x_0\) 必然产生不同的输出轨迹（当输入相同时），从而映射是单射。此时
+\begin{equation}
+	\dim \mathcal{G}_L = \dim \left\{ \begin{bmatrix} \mathbf{u} \\ x_0 \end{bmatrix} \right\} = L m + n
+\end{equation}
+如果系统不可观测，则行为子空间的维数小于 \(L m + n\)。在我们的假设中，要求系统是能控能观的最小实现，从而上式成立。
+
+假设采集到一段长度为 \(J\) 的输入输出数据, 构造块行数为 \(L\) 的 Hankel 矩阵：
+\[
+H_{L,J} = \begin{bmatrix} H_L(\mathbf{y_{d,[0,J-1]}}) \\ H_L(\mathbf{u_{d,[0,J-1]}}) \end{bmatrix} \in \mathbb{R}^{L(p+m) \times (J-L+1)}
+\]
+该矩阵的每一列都是一个长度为 \(L\) 的轨迹片段，因此所有列向量都属于行为子空间 \(\mathcal{G}_L\)。于是，有
+\[
+\operatorname{rank} H_{L,J} \le \dim \mathcal{G}_L = L m + n 
+\]
+即 \(L m + n\) 是 Hankel 矩阵秩的一个上界。
+
+根据线性时不变系统的行为理论，输入-输出数据联合 Hankel 矩阵可以分解为系统初始状态响应与输入响应的线性组合：
+\begin{equation}
+	H_{L,J} = \begin{bmatrix} \Gamma_L & \Omega_L \\ I_{L m} & 0  \end{bmatrix}
+	\begin{bmatrix} H_L(\mathbf{u_{d,[0,J-1]}}) \\ X \end{bmatrix}
+\end{equation}
+其中 \(H_L(\mathbf{u_{d,[0,J-1]}})\) 是输入数据的 Hankel 矩阵（大小为 \(L m \times (J-L+1)\)），\(X\) 是对应的状态序列构成的矩阵，\(X = \begin{bmatrix} x(0) & x(1) & \cdots & x(J-L) \end{bmatrix} \in \mathbb{R}^{n \times (J-L+1)}\)。矩阵 \(\begin{bmatrix} \Gamma_L & \Omega_L \\ I_{L m} & 0 \end{bmatrix}\) 是列满秩的，因为 \(\Omega_L\) 列满秩（可观测性）且左上角为单位阵。因此有
+\begin{equation}
+	\operatorname{rank} H_{L,J} = \operatorname{rank} \begin{bmatrix} H_L(\mathbf{u_{d,[0,J-1]}}) \\ X \end{bmatrix}
+\end{equation}
+而在 Willems' 基本引理中，持续激励条件（输入数据 \(\mathbf{u_{d,[0,J-1]}}\) 是阶数为 \(L+n\) 的持续激励，即 \(H_{L+n}(\mathbf{u_{d,[0,J-1]}})\) 行满秩）保证了 \(\begin{bmatrix} H_L(\mathbf{u_{d,[0,J-1]}}) \\ X \end{bmatrix}\) 是行满秩的，其行空间维数为 \(L m + n\),此时
+\begin{equation}
+	\operatorname{rank} H_{L,J} = L m + n
+\end{equation}
+反之，若输入数据不是持续激励的，则 \(H_L(\mathbf{u_{d,[0,J-1]}})\) 行不满秩，从而矩阵 \(\begin{bmatrix} H_L(\mathbf{u_{d,[0,J-1]}}) \\ X \end{bmatrix}\) 的秩严格小于 \(L m + n\)，于是 \(H_{L,J}\) 的秩也严格小于该上界。这一上界条件为我们判断数据是否“足够丰富”提供了精确的停止准则。
+
+\section{最少数据生成机制}
+
+传统的持续激励条件要求盲目地输入长序列噪声信号以期达到上述满秩条件。本文提出，可以直接利用引理 \ref{lem:shortest} 进行主动的数据构造。
+
+根据最短数据引理，在每一步迭代中，只要我们选择的输入数据 $u_d(J)$ 避开了一个特定的 $(m-1)$ 维仿射集 $\mathcal{A}_J$（即满足 $u_d(J) \notin \mathcal{A}_J$），那么联合 Hankel 矩阵的秩就会严格增加 1：
+\begin{equation}
+	\text{rank} H_{L, J+1} = \text{rank} H_{L, J} + 1
+	\label{eq:rank_strict_increase}
+\end{equation}
+
+值得强调的是，对于本文重点关注的单输入单输出 (SISO) 系统，输入维数 $m=1$。此时，仿射集 $\mathcal{A}_J$ 退化为一个零维集合（即空间中的一个孤立点）。该策略同样可自然推广至多输入高维系统（$m>1$）。从测度论与概率论的严格意义上讲，阻碍秩增加的仿射集 $\mathcal{A}_J$ 维数至多为 $m-1$，在 $m$ 维连续输入空间 $\mathbb{R}^m$ 中，其勒贝格测度（Lebesgue measure）严格为零（几何上相当于高维空间中的一个低维超平面）。因此，当测试输入信号 $u_d(J)$ 服从任意连续概率分布（如高斯分布或均匀分布）时，该随机向量落入 $\mathcal{A}_J$ 的概率为零。这意味着，在实数域内随机选择的输入信号，以概率 1 （几乎必然）避开该仿射集。这一性质赋予了该机制极大的工程便利性：在无需显式计算 $\mathcal{A}_J$ 具体表达式的前提下，仅需向系统注入随机噪声信号，即可保证联合 Hankel 矩阵的秩在每一步稳定加 1，直至达到我们所需要的上界。
+
+综上所述，最短测试实验设计方法具有以下优点：
+\begin{itemize}
+	\item \textbf{数据长度最优}：最终获得的数据长度 \(J\) 理论上比传统持续激励条件所需的数据长度显著减少，降低了实验成本。
+	\item \textbf{无需系统模型}：整个数据生成过程仅依赖系统的输入输出响应，不需要任何系统模型参数，完全数据驱动。
+	\item \textbf{实现简单}：每一步只需避开一个低维仿射集，随机输入的选取几乎必然满足条件，无需复杂的选择过程。
+\end{itemize}
+
+\section{基于最少输入输出数据的范数最优迭代学习控制算法}
+
+现在，我们将上述生成机制融入到数据驱动 NOILC 问题中。为了使算法 \ref{alg:data_driven_NOILC} 成立，联合 Hankel 矩阵的列空间必须张成所有长度为 $T_{ini}+T$ 的系统轨迹，我们令轨迹长度 $L = T_{ini}+T$。结合之前的结论，为了设计 NOILC ，联合Hankel矩阵的目标秩必须达到：
+\begin{equation}
+	R_{\text{target}} = Lm + n
+	\label{eq:noilc_target_rank}
+\end{equation}
+
+控制流程大致如下：
+\begin{enumerate}
+	\item \textbf{数据初始化与累加：} 选取使得 Hankel 矩阵列满秩的输入数据，逐步注入满足 $u_d(J) \notin \mathcal{A}_J$ 的测试信号，并构造联合 Hankel 矩阵。
+	\item \textbf{秩检测与停止：} 在每一步检查 $\text{rank}(H_{L,J})$，当其达到 $R_{\text{target}}$ 时停止数据采集。此时，所需的总数据长度达到了理论最小值 $J_{\min} = (m+1)L + n - 1$。
+	\item \textbf{控制律求解：} 利用这段信息量充足的最短数据提取出 $U_p, Y_p, U_f, Y_f$，代入最优化问题中进行求解，得到下一次迭代的控制输入 $\mathbf{u_{k+1}}$。
+\end{enumerate}
+
+依据上述流程，可以设计如下的算法
+
+\begin{algorithm}[H]
+	\small
+	\SetAlgoLined
+	\SetAlgorithmName{算法}{算法}{算法目录}
+	\SetKwFor{Repeat}{直至}{重复}{结束重复}
+	\SetKwFor{While}{当}{循环}{结束循环}
+	\SetKw{Return}{返回}
+	\SetKwInOut{KwIn}{输入}
+	\SetKwInOut{KwOut}{输出}
+	\caption{基于最少输入输出数据的范数最优迭代学习控制算法}
+	\label{alg:shortest_data_NOILC}
+	\LinesNumbered 
+	
+	\KwIn{系统阶数 $n$，输入维数 $m$，输出维数 $p$，控制时域 $T$，初始响应长度$T_{ini}$，参考轨迹 $\mathbf{r}$，权重矩阵 $Q, R$\;}
+	\KwOut{系统满足跟踪精度时的控制输入序列 $u_k$\;}
+	
+	\BlankLine
+	\tcp{阶段一：基于最短机制的离线数据采集与矩阵构造}
+	轨迹片段长度 $L = T+T_{ini}$\;
+	计算联合 Hankel 矩阵的目标满秩条件 $R_{\text{target}} = Lm + n$\;
+	随机选取初始时刻的一组输入输出数据，初始化迭代指标 $i \leftarrow$ 0\ ，初始化 $\mathbf{u_{d,[0,J-1+i]}}$ 和 $\mathbf{y_{d,[0,J-1+i]}}$\;
+	构造初始的轨迹 $\mathbf{w_{d,[0,J-1+i]}}$ 以及对应的联合 Hankel 矩阵 $H_{L,J+i}$\;
+	
+	\While{$\operatorname{rank}\left(H_{L,J+i}\right) < R_{\text{target}}$}{
+		对于当前时刻 $J+i$，确定使得秩不增加的 $(m-1)$ 维仿射集 $\mathcal{A}_{J+i}$\;
+		设计新的测试输入信号 $u_d(J+i)$，使得 $u_d(J+i) \notin \mathcal{A}_{J+i}$ (实际上可随机采样)\;
+		将 $u_d(J+i)$ 施加于系统，测得相应的输出 $y_d(J+i)$\;
+		将新数据追加到序列中：$\mathbf{u_{d,[0,J-1+i+1]}} \leftarrow \begin{bmatrix} \mathbf{u_{d,[0,J-1+i]}}^\top & u_d(J+i) \end{bmatrix}^\top$, $\mathbf{y_{d,[0,J-1+i+1]}} \leftarrow \begin{bmatrix} \mathbf{y_{d,[0,J-1+i]}}^\top & y_d(J+i) \end{bmatrix}^\top$\;
+		更新 $\mathbf{w_{d,[0,J-1+i]}} \leftarrow \operatorname{col}(\mathbf{u_{d,[0,J-1+i]}}, \mathbf{y_{d,[0,J-1+i]}})$，并重构扩维后的联合 Hankel 矩阵 $H_{L,J+i}$\;
+		$i \leftarrow i + 1$\;
+	}
+	\tcp{循环结束时，采集的数据量达到理论下界 $J_{\min} = (m+1)L + n - 1$}
+	
+	利用采集完成的数据 $\mathbf{w_{d,[0,J-1]}}$，提取出用于状态设置与响应计算的数据矩阵分块：$U_p, Y_p, U_f, Y_f$\;
+	基于矩阵分块计算系统的零初始条件响应矩阵 $W_0$\;
+	
+	\BlankLine
+	\tcp{阶段二：数据驱动在线迭代学习控制 (NOILC)}
+	初始化迭代指标 $k \leftarrow 0$，选取初始控制输入 $\mathbf{u_0}$\;
+	设定容许的误差阈值 $\varepsilon$\;
+	\Repeat{$\|\mathbf{e_k}\| \leq \varepsilon$ 或达到最大迭代次数}{
+		将控制序列 $\mathbf{u_k}$ 应用于系统 \eqref{eq:sys}，收集实际跟踪输出轨迹 $\mathbf{y_k}$\;
+		计算当前迭代的跟踪误差：$\mathbf{e_k} \leftarrow \mathbf{r} - \mathbf{y_k}$\;
+		\tcp*[h]{代入基于数据矩阵的最优化约束方程求解下一次控制输入}\par
+		利用更新律 \eqref{eq:solution_noilc} 更新控制律：\\
+		$\mathbf{u_{k+1}} \leftarrow \mathbf{u_k} + \begin{bmatrix} I \\ 0 \end{bmatrix}^\top W_0 (W_0^\top S W_0)^+ W_0^\top S \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix}$\;
+		$k \leftarrow k + 1$\;
+	}
+	返回最终输入序列 $\mathbf{u_k}$
+\end{algorithm}
+
+\section{收敛性分析}
+
+算法 \ref{alg:shortest_data_NOILC} 的收敛性质由下述定理描述。
+
+\begin{theorem}
+	\label{thm:convergence}
+	若输入数据 \( \mathbf{u_{d,[0,J-1]}}) \) 能够使得构造的联合 Hankel 矩阵的秩达到\eqref{eq:noilc_target_rank}，则基于最少输入输出数据的 NOILC 算法能够实现与基于模型的 NOILC 相同的跟踪性能。进一步，所提算法可保证跟踪误差范数单调收敛到零，即
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\|_Q \leq \|\mathbf{e_k}\|_Q \quad \text{且} \quad \lim_{k \to \infty} \mathbf{e_k} = 0
+		\label{eq:monotonic_convergence}
+	\end{equation}
+	此外，若存在某个 $\sigma > 0$ 使得算子 $\mathbf{G}\mathbf{G}^*$ 满足 \( \mathbf{G} \mathbf{G}^* \geq \sigma^2 I \)，其中 \( \mathbf{G}^* = R^{-1} \mathbf{G}^\top Q \) 为伴随系统，则跟踪误差范数以指数速率收敛：
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\|_Q \leq \frac{1}{1 + \sigma^2} \|\mathbf{e_k}\|_Q
+		\label{eq:exponential_convergence}
+	\end{equation}
+\end{theorem}
+
+\begin{proof}
+	为了证明定理 \ref{thm:convergence}，我们将证明两个算法的轨迹相同，即
+	\begin{equation}
+		\operatorname{col}(\mathbf{u_{k+1}}, \mathbf{y_{k+1}}) = \mathbf{w_{k+1}}^D = \mathbf{w_{k+1}}^M,
+		\label{eq:traj_eq}
+	\end{equation}
+	其中 \(\mathbf{w_{k+1}}^D\) 表示数据驱动算法的解轨迹，\(\mathbf{w_{k+1}}^M\) 表示基于模型的解轨迹。
+	
+	注意系统矩阵 \(\mathbf{G}\) 是零初始条件响应子空间 \(\mathcal{G}^0\) 的一组基，即
+	\begin{equation}
+		\operatorname{col\,span}(W_0) = \operatorname{col\,span}\left( \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} \right) = \mathcal{G}^0,
+		\label{eq:W0_basis}
+	\end{equation}
+	因此存在 \(g_{k+1}\) 和 \(g_k\) 使得
+	\begin{equation}
+		\begin{aligned}
+			\begin{bmatrix} \mathbf{u_{k+1}} \\ \mathbf{y_{k+1}} \end{bmatrix}
+			&= \begin{bmatrix} U_f \\ Y_f \end{bmatrix} g_{k+1} \\
+			&= W_0 g_k + \begin{bmatrix} \mathbf{u_k} \\ \mathbf{y_k} \end{bmatrix} \\
+			&= \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} (\mathbf{u_{k+1}} - \mathbf{u_k}) + \begin{bmatrix} \mathbf{u_k} \\ \mathbf{y_k} \end{bmatrix}
+		\end{aligned}
+		\label{eq:W0_relation}
+	\end{equation}
+	由式 \eqref{eq:opt_noilc} 和 \eqref{eq:constrained_opt} 可得
+	\begin{equation}
+		\begin{bmatrix} \mathbf{u_{k+1}} - \mathbf{u_k} \\ \mathbf{y_{k+1}} - \mathbf{y_k} \end{bmatrix} = W_0 \arg\min_{g_k} \left\| W_0 g_k - \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix} \right\|_S^2
+		\label{eq:min_g2}
+	\end{equation}
+	结合式 \eqref{eq:W0_relation}，式 \eqref{eq:min_g2} 等价于
+	\begin{equation}
+		\begin{bmatrix} \mathbf{u_{k+1}} \\ \mathbf{y_{k+1}} - \mathbf{d} \end{bmatrix} = \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} \arg\min_\mathbf{{u_{k+1}}} \left\| \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} \mathbf{u_{k+1}} - \begin{bmatrix} \mathbf{u_k} \\ \mathbf{y_k} + \mathbf{e_k} \end{bmatrix} \right\|_S^2,
+		\label{eq:equiv_model}
+	\end{equation}
+	这正是基于模型的范数最优ILC算法。因此，基于最少数据的NOILC的解与基于模型的范数最优ILC（式 \eqref{eq:optimal_control}）的解相同，则基于最少数据的范数最优ILC的跟踪性能与基于模型的范数最优ILC相同。单调收敛性自然可由基于模型的范数最优ILC的证明得到。 
+	
+	先证明单调性。注意到 \(\mathbf{G} R^{-1} \mathbf{G}^\top Q\) 是半正定矩阵，因此矩阵 \(I + \mathbf{G} R^{-1} \mathbf{G}^\top Q\) 的特征值均大于等于1，从而其逆矩阵 \((I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1}\) 的特征值均位于 \((0,1]\) 区间。于是，该矩阵的谱半径 \(\rho \le 1\)。则对于任意向量 \(\mathbf{e}\)，有 \(\|(I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1} \mathbf{e}\|_Q \le \|\mathbf{e}\|_Q\)。因此，由式 \eqref{eq:error_evolution} 知
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\|_Q \le \|\mathbf{e_k}\|_Q, \quad \forall k \in \mathbb{N}  
+	\end{equation}
+	
+	接下来证明误差和输入差的收敛。由控制律 \eqref{eq:optimal_control} 得
+	\begin{equation}
+		\mathbf{u_{k+1}} - \mathbf{u_k} = (\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q \mathbf{e_k}
+	\end{equation}
+	由于 $\|\mathbf{e_k}\|_Q$ 单调非增（故有界），而矩阵 $(\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q$ 为有界线性算子，故存在常数 $C>0$ 使得
+	\begin{equation}
+		\|\mathbf{u_{k+1}} - \mathbf{u_k}\|_R \le C \|\mathbf{e_k}\|_Q
+		\label{uk}
+	\end{equation}
+	由于假设系统是最小实现的（能控且能观），零初始条件下任意有限长度的输出轨迹均可由某个输入 $\mathbf{u}^*$ 产生，因此 $\mathbf{r} \in \operatorname{Range}(\mathbf{G})$，完美跟踪可达。即存在 $\mathbf{u}^*$ 使 $\mathbf{r} = \mathbf{G} \mathbf{u}^*$，则
+	\begin{equation}
+		\mathbf{e_0} = \mathbf{r} - \mathbf{G} \mathbf{u_0} = \mathbf{G}(\mathbf{u}^* - \mathbf{u_0}) \in \operatorname{Range}(\mathbf{G})
+	\end{equation}
+	由误差传递关系 \eqref{eq:error_evolution} 知
+	\begin{equation}
+		\mathbf{e_{k+1}} = (I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1} \mathbf{e_k}
+	\end{equation}
+	因为 $\operatorname{Range}(\mathbf{G})$ 是 $(I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1}$ 的不变子空间，故 $\mathbf{e_k} \in \operatorname{Range}(\mathbf{G})$ 对所有 $k$ 成立。在 $\operatorname{Range}(\mathbf{G})$ 上，由$\mathbf{G} R^{-1} \mathbf{G}^\top Q$ 正定，从而 $(I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1}$ 的谱半径 $\rho < 1$。于是，存在 $b<1$ 使得
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\| \le b \|\mathbf{e_k}\|, \quad \forall k \in \mathbb{N}
+	\end{equation}
+	迭代得 $\|\mathbf{e_k}\| \le b^k \|\mathbf{e_0}\| \to 0$，即
+	\begin{equation}
+		\lim_{k\to\infty} \mathbf{e_k} = 0
+	\end{equation}
+	代入 \eqref{uk} 得
+	\begin{equation}
+		\lim_{k\to\infty} (\mathbf{u_{k+1}} - \mathbf{u_k}) = 0
+	\end{equation}
+	
+	最后证明收敛速率。由误差演化关系 \eqref{eq:error_evolution} 及 $\mathbf{G}^* = R^{-1} \mathbf{G}^\top Q$ 得
+	\begin{equation}
+		\mathbf{e_{k+1}} = (I + \mathbf{G} \mathbf{G}^*)^{-1} \mathbf{e_k}
+	\end{equation}
+	由假设 $\mathbf{G} \mathbf{G}^* \geq \sigma^2 I$ 对某个 $\sigma > 0$ 成立，则 $\mathbf{G} \mathbf{G}^*$ 的所有特征值 $\lambda_i \ge \sigma^2$。于是 $I + \mathbf{G} \mathbf{G}^*$ 的所有特征值为 $1 + \lambda_i \ge 1 + \sigma^2$，故 $(I + \mathbf{G} \mathbf{G}^*)^{-1}$ 的特征值为 $\frac{1}{1+\lambda_i} \le \frac{1}{1+\sigma^2}$。则
+	\begin{equation}
+		\rho\bigl((I + \mathbf{G} \mathbf{G}^*)^{-1}\bigr) \le \frac{1}{1+\sigma^2} < 1
+	\end{equation}
+	由于 $(I + \mathbf{G} \mathbf{G}^*)^{-1}$ 是正规矩阵，其谱范数等于谱半径，且根据范数相容性有
+	\begin{equation}
+		\|\mathbf{e_{k+1}}\|_Q = \|(I + \mathbf{G} \mathbf{G}^*)^{-1} \mathbf{e_k}\|_Q \le \frac{1}{1+\sigma^2} \|\mathbf{e_k}\|_Q
+	\end{equation}
+	反复应用得
+	\begin{equation}
+		\|\mathbf{e_k}\|_Q \le \left(\frac{1}{1+\sigma^2}\right)^k \|\mathbf{e_0}\|_Q
+	\end{equation}
+	由于 $0 < \frac{1}{1+\sigma^2} < 1$，有
+	\begin{equation}
+		\lim_{k\to\infty} \mathbf{e_k} = 0
+	\end{equation}
+	证毕。
+\end{proof}
+
+定理 \ref{thm:convergence} 展示了基于最少数据的 NOILC 算法的良好收敛性质。所提算法无需系统模型即可实现与基于模型的范数最优 ILC 算法相同的跟踪性能。
