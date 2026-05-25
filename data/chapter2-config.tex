@@ -1,7 +1,255 @@
 % !Mode:: "TeX:UTF-8"
-\chapter{相关技术研究现状}
+\chapter{预备知识与理论基础}
 
+\section{符号与记号}
 
-\section{1}
+为便于查阅，本节集中列出全文统一使用的数学符号及其含义。各符号在正文首次出现时仍会给出定义。
 
+\subsection*{通用数学符号}
 
+\begin{itemize}
+	\item $\mathbb{R}$ — 实数集；$\mathbb{R}^n$ — $n$ 维实向量空间；$\mathbb{R}^{m\times n}$ — $m\times n$ 实矩阵空间
+	\item $\mathbb{N}$ — 自然数集
+	\item $\mathbb{Z}$ — 整数集
+	\item $I_k$ — $k\times k$ 单位矩阵
+	\item $0_{m,n}$ — $m\times n$ 零矩阵
+	\item $(\cdot)^\top$ — 矩阵或向量的转置
+	\item $(\cdot)^+$ — 矩阵的 Moore--Penrose 伪逆
+	\item $\|\cdot\|$ — 向量的 Euclidean 范数；对矩阵为 Frobenius 范数
+	\item $\langle\cdot,\cdot\rangle$ — 标准 Euclidean 内积
+	\item $\operatorname{Range}(\cdot)$ — 矩阵的列空间
+	\item $\operatorname{rank}(\cdot)$ — 矩阵的秩
+	\item $\operatorname{col}(\cdot,\cdot)$ — 按列堆叠算子
+	\item $\operatorname{col\,span}(\cdot)$ — 矩阵的列张成的空间
+	\item $[i,j]$（$i,j\in\mathbb{Z},\ i\leq j$）— 介于 $i$ 与 $j$ 之间的全体整数构成的有序集合
+\end{itemize}
+
+\subsection*{系统描述}
+
+\begin{itemize}
+	\item $n$ — 系统状态维数（系统阶数）
+	\item $m$ — 系统输入维数
+	\item $p$ — 系统输出维数
+	\item $A\in\mathbb{R}^{n\times n}$、$B\in\mathbb{R}^{n\times m}$、$C\in\mathbb{R}^{p\times n}$、$D\in\mathbb{R}^{p\times m}$ — 离散线性时不变系统的状态空间矩阵
+	\item $x_0\in\mathbb{R}^n$ — 每次迭代的（相同）初始状态，即 $x_k(0)=x_0,\ \forall k$
+\end{itemize}
+
+\subsection*{迭代学习控制}
+
+\begin{itemize}
+	\item $k\in\mathbb{N}$ — 迭代指标
+	\item $t$ — 单次迭代内的时间指标；$T$ 为每次迭代的采样点数（控制时域）
+	\item $u_k(t)\in\mathbb{R}^m$、$y_k(t)\in\mathbb{R}^p$、$x_k(t)\in\mathbb{R}^n$ — 第 $k$ 次迭代时刻 $t$ 的输入、输出、状态
+	\item $\mathbf{u}_k\in\mathbb{R}^{mT}$、$\mathbf{y}_k\in\mathbb{R}^{pT}$ — 提升形式的输入、输出向量
+	\item $\mathbf{r}\in\mathbb{R}^{pT}$ — 提升形式的期望轨迹
+	\item $\mathbf{e}_k = \mathbf{r}-\mathbf{y}_k\in\mathbb{R}^{pT}$ — 提升形式的跟踪误差
+	\item $\mathbf{G}\in\mathbb{R}^{pT\times mT}$ — 由 Markov 参数 $\{CA^iB\}_{i=0}^{T-1}$ 构成的下三角 Toeplitz 矩阵
+	\item $\mathbf{d}\in\mathbb{R}^{pT}$ — 由初始状态 $x_0$ 引起的系统初始响应向量
+	\item $\mathbf{U}=\mathbb{R}^{mT}$、$\mathbf{Y}=\mathbb{R}^{pT}$ — 输入、输出所在的 Hilbert 空间
+	\item $\tilde{\mathbf{u}}_k\in\mathbf{U}$、$\tilde{\mathbf{y}}_k\in\mathbf{Y}$ — $\mathbf{U}$、$\mathbf{Y}$ 中的任意向量
+	\item $Q\in\mathbb{R}^{pT\times pT}$、$R\in\mathbb{R}^{mT\times mT}$ — 输出误差与输入增量的对称正定加权矩阵
+	\item $S = \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix}$ — 组合加权矩阵
+	\item $\|\mathbf{u}\|_R = \sqrt{\mathbf{u}^\top R\mathbf{u}}$、$\|\mathbf{y}\|_Q = \sqrt{\mathbf{y}^\top Q\mathbf{y}}$ — $R$ 加权范数与 $Q$ 加权范数
+	\item $\langle\mathbf{u},\tilde{\mathbf{u}}\rangle_R = \mathbf{u}^\top R\tilde{\mathbf{u}}$ — $R$ 加权内积
+	\item $\langle\mathbf{y},\tilde{\mathbf{y}}\rangle_Q = \mathbf{y}^\top Q\tilde{\mathbf{y}}$ — $Q$ 加权内积
+	\item $\mathbf{G}^* = R^{-1}\mathbf{G}^\top Q$ — 伴随系统
+	\item $\Delta\mathbf{u}_{k+1} = \mathbf{u}_{k+1}-\mathbf{u}_k$ — 控制输入沿迭代轴的增量
+	\item $J(\mathbf{u}_{k+1})$ — 范数最优迭代学习控制的二次型代价函数
+\end{itemize}
+
+\subsection*{数据驱动与行为系统理论}
+
+\begin{itemize}
+	\item $J$ — 离线采集的数据长度
+	\item $\mathbf{u}^{\mathrm{d}}_{[0,J-1]}\in\mathbb{R}^{mJ}$、$\mathbf{y}^{\mathrm{d}}_{[0,J-1]}\in\mathbb{R}^{pJ}$ — 离线采集的输入、输出数据
+	\item $\mathbf{w}^{\mathrm{d}}_{[0,J-1]} = \operatorname{col}(\mathbf{u}^{\mathrm{d}}_{[0,J-1]},\mathbf{y}^{\mathrm{d}}_{[0,J-1]})$ — 离线数据轨迹
+	\item $L$ — 行为系统框架下的轨迹长度（Hankel 矩阵深度/块行数）
+	\item $H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]})\in\mathbb{R}^{mL\times(J-L+1)}$ — 输入数据的深度为 $L$ 的 Hankel 矩阵
+	\item $H_L(\mathbf{y}^{\mathrm{d}}_{[0,J-1]})$ — 输出数据的深度为 $L$ 的 Hankel 矩阵
+	\item $H_{L,J} = \begin{bmatrix} H_L(\mathbf{y}^{\mathrm{d}}_{[0,J-1]}) \\ H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) \end{bmatrix}$ — 联合 Hankel 矩阵
+	\item $G_{L,J}$ — 由 $H_{L-1}(\mathbf{y}^{\mathrm{d}}_{[0,J-2]})$ 与 $H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]})$ 按行拼接的矩阵
+	\item $T_{ini}$ — 初始轨迹长度
+	\item $lag$ — 系统的滞后
+	\item $U_p,Y_p$ — Hankel 矩阵中表示"过去"的分块
+	\item $U_f,Y_f$ — Hankel 矩阵中表示"未来"的分块
+	\item $\mathbf{u}_{\mathrm{ini}}$、$\mathbf{y}_{\mathrm{ini}}$、$\mathbf{w}_{\mathrm{ini}}=\operatorname{col}(\mathbf{u}_{\mathrm{ini}},\mathbf{y}_{\mathrm{ini}})$ — 初始输入、输出轨迹及联合轨迹
+	\item $\mathbf{w} = \operatorname{col}(\mathbf{u},\mathbf{y})$ — 长度为 $L$ 的系统轨迹
+	\item $\mathcal{G}_L$ — 由系统生成的所有长度为 $L$ 的轨迹构成的子空间（行为子空间）
+	\item $\mathcal{G}_L^0$ — 零初始条件子行为
+	\item $W_0$ — 零初始条件响应矩阵
+	\item $g$ — Hankel 矩阵列空间的线性组合系数向量
+	\item $\Gamma_L$ — 由系统 Markov 参数构成的 $Lp\times Lm$ Toeplitz 矩阵
+	\item $\Omega_L$ — 系统的 $Lp\times n$ 能观性矩阵（取前 $L$ 行块）
+	\item $X$ — 与输入输出数据相对应的状态序列矩阵
+	\item $\mathcal{A}_J$ — 最短测试实验中每一步需避开的低维仿射集
+	\item $f_{[i,j]}$ — 序列 $\{f(t)\}_{t=i}^{j-1}$ 按列排列的矩阵表示
+\end{itemize}
+
+\section{迭代学习控制问题}
+
+考虑一个最小实现（能控能观）的离散线性时不变系统：
+\begin{equation}
+	\begin{aligned}
+		x_k(t+1) &= A x_k(t) + B u_k(t), \\
+		y_k(t) &= C x_k(t) + D u_k(t),\\
+		x_k(0) &= x_0, \ \forall k\in\mathbb{N}
+	\end{aligned}
+	\label{eq:sys}
+\end{equation}
+其中，$n, m, p \geq 1$ 分别为系统的阶数，输入维数和输出维数。$A \in \mathbb{R}^{n \times n}$，$B \in \mathbb{R}^{n \times m}$，$C \in \mathbb{R}^{p \times n}$，$D \in \mathbb{R}^{p \times m}$，\(u_k(t)\in\mathbb{R}^m\)，\(y_k(t)\in\mathbb{R}^p\)，\(x_k(t)\in\mathbb{R}^n\)。$u_k(t)$、$y_k(t)$ 和 $x_k(t)$ 分别为系统输入、输出和状态，$k \in \mathbb{N}$ 为迭代指标，$t \in \{0, 1, \dots, T\}$ 为离散时间指标。系统 \eqref{eq:sys} 在有限时间区间内重复运行。当时间到达 $T$ 时，系统进入下一次迭代，并将控制时刻 $t$ 重置为 0，状态重置为相同的初始状态 $x_k(0) = x_0, \forall k \in \mathbb{N}$。
+
+采用"提升形式"表示\upcite{hatonen2004,owens2003}，系统输入、输出以及期望轨迹定义为
+\begin{align}
+	\mathbf{u}_k &= [u_k(0), u_k(1),\dots,u_k(T-1)]^\top \in \mathbb{R}^{mT},\\
+	\mathbf{y}_k &= [y_k(1), y_k(2),\dots,y_k(T)]^\top \in \mathbb{R}^{pT},\\
+	\mathbf{r} &= [r(1), r(2),\dots,r(T)]^\top \in \mathbb{R}^{pT}
+	\label{eq:lifted}
+\end{align}
+则系统输入输出关系可写为：
+\begin{equation}
+	\mathbf{y}_k = \mathbf{G} \mathbf{u}_k + \mathbf{d}
+\end{equation}
+其中，系统矩阵 $\mathbf{G}$ 为 Toeplitz 矩阵：
+\begin{equation}
+	\mathbf{G} = \begin{bmatrix}
+		CB & 0 & \cdots & 0 \\
+		CAB & CB & \cdots & 0 \\
+		\vdots & \vdots & \ddots & \vdots \\
+		CA^{T-1}B & CA^{T-2}B & \cdots & CB
+	\end{bmatrix}
+\end{equation}
+而 $\mathbf{d}$ 为系统初始响应：
+\begin{equation}
+	\mathbf{d} = \big[ CAx_0, CA^{2}x_0, \dots, CA^{T}x_0 \big]^\top
+\end{equation}
+输入 $\mathbf{u}_k$ 和输出 $\mathbf{y}_k$ 分别定义在 Hilbert 空间 $\mathbf{U} = \mathbb{R}^{mT}$ 和 $\mathbf{Y} = \mathbb{R}^{pT}$ 上，其内积及诱导范数分别为
+\begin{equation}
+	\langle \mathbf{u}_k, \tilde{\mathbf{u}}_k \rangle_R = \mathbf{u}_k^\top R \tilde{\mathbf{u}}_k, \quad \langle \mathbf{y}_k, \tilde{\mathbf{y}}_k \rangle_Q = \mathbf{y}_k^\top Q \tilde{\mathbf{y}}_k
+	\label{eq:inner}
+\end{equation}
+\begin{equation}
+	\|\mathbf{u}_k\|_R = \sqrt{\mathbf{u}_k^\top R \mathbf{u}_k}, \quad \|\mathbf{y}_k\|_Q = \sqrt{\mathbf{y}_k^\top Q \mathbf{y}_k}
+	\label{eq:norm}
+\end{equation}
+其中\(\tilde{\mathbf{u}}_k \in \mathbf{U}\) 和 \(\tilde{\mathbf{y}}_k \in \mathbf{Y}\) 为任意向量，$R$ 和 $Q$ 为正定加权矩阵。
+
+基于以上预备知识，迭代学习控制致力于设计迭代学习控制律
+\begin{equation}
+	\mathbf{u}_{k+1}=\mathbf{u}_k+\Delta \mathbf{u}_{k+1}
+	\label{kongzhiqi}
+\end{equation}
+实现控制输入沿迭代轴的更新，从而确保系统输出能够精确跟踪给定的期望轨迹$\mathbf{r}$，即
+\begin{equation}
+	\lim_{k\to\infty} \mathbf{y}_k=\mathbf{r}
+	\label{mubiao}
+\end{equation}
+
+\section{基于模型的范数最优迭代学习控制}
+
+与上一节所述的一般迭代学习控制更新律\eqref{kongzhiqi}不同，范数最优迭代学习控制（Norm-Optimal ILC, NOILC）将控制输入的更新归结为一个具有明确物理意义的凸优化问题：在满足系统提升形式输入输出关系\eqref{eq:tracking_error}的约束下，最小化由下一迭代跟踪误差范数与输入增量范数构成的加权二次型目标函数。这一优化框架赋予了 NOILC 以下几方面相较于一般 ILC 的显著优势。第一，控制更新律由目标函数的极值条件解析导出，更新方向与步长均由系统矩阵 $\mathbf{G}$、加权矩阵 $Q,R$ 及当前误差 $\mathbf{e}_k$ 自动确定，无需像传统 P 型或 D 型学习律那样针对不同系统反复调试学习增益。第二，代价函数中第二项 $\|\mathbf{u}_{k+1}-\mathbf{u}_k\|_R^2$ 对输入沿迭代轴的变化幅度施加了显式惩罚，既避免了控制信号的剧烈跳变以增强对模型不确定性的鲁棒性，又在理论上保证了跟踪误差范数的单调收敛——这一性质是许多早期 ILC 算法\upcite{arimoto1984,moore1993}所不具备的。第三，通过调节 $Q$ 与 $R$ 的相对大小，设计者可在跟踪精度与控制能量之间做出有物理直觉的折中，使算法易于适配不同的工程场景。基于上述优点，NOILC 被广泛视为基于模型迭代学习控制的性能标杆\upcite{owens2005,bristow2006}。NOILC 已在众多领域获得成功应用，例如工业机器人\upcite{gunnarsson2001}、高速列车自动运行\upcite{hou2011}、化工批次过程\upcite{lee1994,lee2000}、精密运动系统\upcite{bolder2015}以及医疗康复\upcite{freeman2012}等。NOILC 的扩展形式包括预测最优 ILC\upcite{amann1998} 和鲁棒单调收敛 ILC\upcite{vandewijdeven2009}。
+
+定义跟踪误差 $\mathbf{e}_k = \mathbf{r} - \mathbf{y}_k$，利用系统提升形式\eqref{eq:lifted}可得
+\begin{equation}
+	\mathbf{e}_k = \mathbf{r} - \mathbf{G} \mathbf{u}_k - \mathbf{d}
+	\label{eq:tracking_error}
+\end{equation}
+基于模型的范数最优迭代学习控制可表述为如下凸优化问题：
+\begin{equation}
+	\begin{aligned}
+		\min_{\mathbf{u}_{k+1}} \quad & J(\mathbf{u}_{k+1}) = \|\mathbf{e}_{k+1}\|_Q^2 + \|\mathbf{u}_{k+1} - \mathbf{u}_k\|_R^2 \\
+		\mathrm{s.t.} \quad & \mathbf{e}_{k+1} = \mathbf{r} - \mathbf{G} \mathbf{u}_{k+1} - \mathbf{d}
+	\end{aligned}
+	\label{eq:model_based_NOILC}
+\end{equation}
+其中 \(Q > 0\) 和 \(R > 0\) 分别为输出误差和输入变化量的正定加权矩阵。代价函数 $J(\mathbf{u}_{k+1})$ 中的第一项最小化跟踪误差，第二项通过沿迭代轴 \(k\) 平滑输入 \(\mathbf{u}_{k}\) 来防止控制信号的剧烈跳变。
+
+\begin{remark}
+	在一些研究中，例如 Gunnarsson 和 Norrlöf\upcite{gunnarsson2001}、Bolder 和 Oomen\upcite{bolder2015}，代价函数包含项 \(\|\mathbf{u}_{k}\|_S^2\)，其中 \(S\) 为加权矩阵。该项可以防止执行器饱和并降低高频灵敏度。然而，包含该项可能会阻碍算法实现完美跟踪\upcite{bristow2006}。由于本文不考虑高频问题，因此省略该项。
+\end{remark}
+
+范数最优迭代学习控制的控制更新律由下式给出
+\begin{equation}
+	\mathbf{u}_{k+1} = \arg \min_{\mathbf{u}_{k+1}} J(\mathbf{u}_{k+1})
+	\label{eq:update_law_NOILC}
+\end{equation}
+将约束代入代价函数，由跟踪误差定义 \eqref{eq:tracking_error} 可得
+\begin{equation}
+	\begin{aligned}
+		\mathbf{e}_{k+1} &= \mathbf{r} - \mathbf{G} \mathbf{u}_{k+1} - \mathbf{d} \\
+		&= \mathbf{e}_k - \mathbf{G}(\mathbf{u}_{k+1} - \mathbf{u}_k)
+	\end{aligned}
+	\label{eq:ekp1_decompose}
+\end{equation}
+令 \(\Delta\mathbf{u}_{k+1} = \mathbf{u}_{k+1} - \mathbf{u}_k\)，将代价函数按加权内积展开：
+\begin{align}
+	J(\mathbf{u}_{k+1}) &= \|\mathbf{e}_k - \mathbf{G}\Delta\mathbf{u}_{k+1}\|_Q^2 + \|\Delta\mathbf{u}_{k+1}\|_R^2 \nonumber\\
+	&= \mathbf{e}_k^\top Q \mathbf{e}_k - 2\mathbf{e}_k^\top Q \mathbf{G} \Delta\mathbf{u}_{k+1} + \Delta\mathbf{u}_{k+1}^\top (\mathbf{G}^\top Q \mathbf{G} + R) \Delta\mathbf{u}_{k+1}
+	\label{eq:cost_quadratic}
+\end{align}
+对 \(\Delta\mathbf{u}_{k+1}\) 求梯度并令其为零：
+\begin{equation}
+	\frac{\partial J}{\partial \Delta\mathbf{u}_{k+1}} = -2\mathbf{G}^\top Q \mathbf{e}_k + 2(\mathbf{G}^\top Q \mathbf{G} + R) \Delta\mathbf{u}_{k+1} = 0
+	\label{eq:first_order}
+\end{equation}
+由于 \(Q, R\) 正定且 \(\mathbf{G}^\top Q \mathbf{G}\) 半正定，矩阵 \(\mathbf{G}^\top Q \mathbf{G} + R\) 可逆，解得唯一极小点：
+\begin{equation}
+	\Delta\mathbf{u}_{k+1} = (\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q \mathbf{e}_k
+\end{equation}
+代回 \(\mathbf{u}_{k+1} = \mathbf{u}_k + \Delta\mathbf{u}_{k+1}\)，得最优控制律
+\begin{equation}
+	\mathbf{u}_{k+1} = \mathbf{u}_{k} + (\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q \mathbf{e}_{k}
+	\label{eq:optimal_control}
+\end{equation}
+该控制律具有清晰的几何解释：$(\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q$ 可视为 $\mathbf{G}$ 的加权伪逆，本质上将当前误差沿最优方向投影以生成输入增量\upcite{ghosh2002}。
+将最优控制律 \eqref{eq:optimal_control} 代入误差的增量表达式 \eqref{eq:ekp1_decompose}：
+\begin{align}
+	\mathbf{e}_{k+1} &= \mathbf{e}_k - \mathbf{G} \Delta\mathbf{u}_{k+1} \nonumber\\
+	&= \mathbf{e}_k - \mathbf{G}(\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q \,\mathbf{e}_k \nonumber\\
+	&= \bigl[I - \mathbf{G}(\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q\bigr] \mathbf{e}_k
+	\label{eq:error_before_woodbury}
+\end{align}
+由 Woodbury 矩阵求逆恒等式得
+\begin{equation}
+	I - \mathbf{G}(\mathbf{G}^\top Q \mathbf{G} + R)^{-1} \mathbf{G}^\top Q = (I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1}
+	\label{eq:woodbury_applied}
+\end{equation}
+将 \eqref{eq:woodbury_applied} 代入 \eqref{eq:error_before_woodbury}，得误差演化关系
+\begin{equation}
+	\begin{aligned}
+		\mathbf{e}_{k+1} &= (I + \mathbf{G} R^{-1} \mathbf{G}^\top Q)^{-1} \mathbf{e}_{k} \\
+		&= (I + \mathbf{G} \mathbf{G}^*)^{-1} \mathbf{e}_{k}
+	\end{aligned}
+	\label{eq:error_evolution}
+\end{equation}
+其中 \(\mathbf{G}^* := R^{-1} \mathbf{G}^\top Q\) 称为伴随系统。上述推导与 Moore 等人\upcite{moore2005} 关于单调收敛迭代学习控制的代数条件本质上是一致的。范数最优迭代学习控制具有优良的收敛性质，如以下引理所示。
+
+\begin{lemma}[Amann 等\upcite{amann1996}]
+	\label{propshoulian}
+	对于迭代学习控制系统 \eqref{eq:sys}，假设完美跟踪可实现，即 \(\mathbf{r} \in \operatorname{Range}(\mathbf{G})\)，其中 \(\operatorname{Range}(\cdot)\) 表示矩阵的列空间，并令迭代学习控制由 \eqref{eq:optimal_control} 给出。则以下结论成立：
+	\begin{equation}
+		\|\mathbf{e}_{k+1}\| \leq \|\mathbf{e}_{k}\|,
+		\label{eq:monotonic}
+	\end{equation}
+	以及
+	\begin{equation}
+		\lim_{k \to \infty} (\mathbf{u}_{k+1} - \mathbf{u}_{k}) = 0, \quad \lim_{k \to \infty} \mathbf{e}_{k} = 0
+		\label{eq:converg}
+	\end{equation}
+\end{lemma}
+
+\begin{lemma}[Amann 等\upcite{amann1996}]
+	\label{propsudu}
+	若算子 \(\mathbf{G} \mathbf{G}^*\) 满足 \(\mathbf{G} \mathbf{G}^* \geq \sigma^2 I\) 对某个 \(\sigma > 0\) 成立，则
+	\begin{equation}
+		\|\mathbf{e}_{k+1}\| \leq \frac{1}{1 + \sigma^2} \|\mathbf{e}_{k}\|,
+		\label{eq:exp_convergence}
+	\end{equation}
+	以及
+	\begin{equation}
+		\lim_{k \to \infty} \mathbf{e}_{k} = 0
+		\label{eq:exp_limit}
+	\end{equation}
+\end{lemma}
+
+引理~\ref{propshoulian} 给出的单调收敛性具有明确的工程含义：跟踪误差范数不会因迭代而放大，算法在瞬态阶段不会产生超出系统物理限幅的过度控制信号。引理~\ref{propsudu} 进一步刻画了收敛速率——在 \(\mathbf{G}\mathbf{G}^*\) 正定的条件下，误差以几何速率衰减。由于 \(\mathbf{G}^* = R^{-1}\mathbf{G}^\top Q\)，增大跟踪误差权重 \(Q\) 或减小输入增量惩罚 \(R\) 可使 \(\sigma^2\) 增大，加速收敛；但 \(R\) 过小会弱化对控制输入波动的抑制能力，在模型存在不确定性的场合反而不利。这一矛盾实际反映了跟踪速度与鲁棒性之间的折中。
+上述收敛性质成立的前提是系统模型精确已知，而在实际中通过系统辨识获得高精度模型往往代价高昂。若能从输入输出数据中直接构造 \(\mathbf{G}\) 的等价表示，便有望在保留以上收敛性质的同时绕开显式建模，这正是后续两章的核心任务。

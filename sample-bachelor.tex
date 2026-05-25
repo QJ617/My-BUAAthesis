@@ -1,13 +1,15 @@
 % !Mode:: "TeX:UTF-8"
-\documentclass[bachelor,openany,oneside,color,AutoFakeBold=true]{buaathesis}
+\documentclass[bachelor,openany,oneside,AutoFakeBold=true,twoteacher]{buaathesis}
 
 % 参考文献
 \usepackage{gbt7714}
+\hypersetup{citecolor=black}
 % 参考文献输出方式，numerical为按照出现顺序，authoryear为按照作者姓名和年份
 \usepackage[ruled,linesnumbered]{algorithm2e}
 \numberwithin{algocf}{chapter}
 \theoremstyle{definition}
-\newtheorem*{problemnode}{问题描述} 
+\theorembodyfont{\rmfamily\mdseries\upshape}
+\newtheorem*{problemnode}{问题描述}
 \citestyle{numerical}
 % \citestyle{authoryear}
 
@@ -38,7 +40,6 @@
 \include{data/chapter3-download}
 \include{data/chapter4-basic}
 \include{data/chapter5-usage}
-\include{data/chapter6-implement}
 \include{data/conclusion}
 
 % 致谢
@@ -49,5 +50,4 @@
 % 附录
 \appendix
 \include{data/appendix1-faq}
-\include{data/appendix2-contactus}
 \end{document}

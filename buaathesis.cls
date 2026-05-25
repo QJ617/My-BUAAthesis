@@ -469,9 +469,12 @@ The LaTeX template for thesis of BUAA]
 %%%%%%%%%% theorem %%%%%%%%%%
 % 定理
 
+\theoremstyle{definition}
+\theorembodyfont{\rmfamily\mdseries\upshape}
 \theoremsymbol{\ensuremath{\square}}
 \newtheorem*{proof}{证明}
-\theoremstyle{plain}
+\theoremstyle{definition}
+\theorembodyfont{\rmfamily\mdseries\upshape}
 \theoremsymbol{}
 \theoremseparator{：}
 \newtheorem{assumption}{假设}[chapter]
@@ -483,7 +486,11 @@ The LaTeX template for thesis of BUAA]
 \newtheorem{corollary}{推论}[chapter]
 \newtheorem{exercise}{练习}[chapter]
 \newtheorem{example}{例}[chapter]
+\theoremstyle{definition}
+\theorembodyfont{\rmfamily\mdseries\upshape}
 \newtheorem{remark}{注释}[chapter]
+\theorembodyfont{\itshape}
+\theoremstyle{plain}
 \newtheorem{problem}{问题}[chapter]
 \newtheorem{conjecture}{猜想}[chapter]
 
@@ -602,7 +609,7 @@ The LaTeX template for thesis of BUAA]
 % cvrtc : CoVer - Right  - Top    - Center
 % cvcbc : CoVer - Center - Bottom - Center
 \newcommand{\ulinecvrtc}[1]{\uline{\makebox[9em][c]{\bf #1}}}
-\newcommand{\ulinecvcbc}[1]{\uline{\makebox[14em][c]{#1}}}
+\newcommand{\ulinecvcbc}[1]{\uline{\makebox[16em][c]{#1}}}
 
 % 中文首页
 \newcommand{\titlech}{
@@ -1118,7 +1125,7 @@ The LaTeX template for thesis of BUAA]
         \ulinel{\buaa@bachelor@assign@ref@seven}
         \ulinel{\buaa@bachelor@assign@ref@eight}
         \ulinel{\buaa@bachelor@assign@ref@nine}
-        \ulinec[.28]{\buaa@school}学院\ulinec[.28]{\buaa@major}~专业类~\ulinec[.15]{\buaa@class}班 \\
+        \ulinec[.18]{\buaa@school}学院\ulinec[.40]{\buaa@major}~专业类~\ulinec[.15]{\buaa@class}班 \\
         学生\ulinec[.3]{\buaa@thesisauthor} \\
         毕业设计(论文)时间：~~\ulinec[.1]{\buaa@thesisbeginyear}年\ulinec[.06]{\buaa@thesisbeginmonth}月\ulinec[.06]{\buaa@thesisbeginday}日至\ulinec[.1]{\buaa@thesisendyear}年\ulinec[.06]{\buaa@thesisendmonth}月\ulinec[.06]{\buaa@thesisendday}日 \\
         答辩时间：\ulinec[.16]{\buaa@defenseyear}年\ulinec[.08]{\buaa@defensemonth}月\ulinec[.08]{\buaa@defenseday}日 \\
@@ -1129,7 +1136,6 @@ The LaTeX template for thesis of BUAA]
         \ulinel{}
         \ulinec[.28]{}系（教研室） 主任（签字）：\ulinec[.28]{} \\
         \vfill
-        注：任务书应该附在已完成的毕业设计（论文）的首页。
         \end{spacing}
     }
     \parindent=2\ccwd

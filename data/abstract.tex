@@ -2,12 +2,46 @@
 
 % 中英文摘要
 \begin{cabstract}
-本篇文档主要介绍{\bf 北航毕业设计论文\LaTeX{}模板}使用和相关软件环境的安装配置，
-以及本模板所遵循的开源协议等。
+迭代学习控制是一种通过沿迭代轴修正控制输入以提升跟踪精度的有效控制策略。
+范数最优迭代学习控制作为一种典型的基于模型的迭代学习控制算法，具有设计框架系统化、兼顾控制品质的优点，可保证跟踪误差沿迭代轴单调收敛。然而，其设计高度依赖被控系统的精确数学模型。
+在实际工程中，复杂系统的精确模型往往难以获取，辨识精确的系统模型往往会带来较大的计算与时间成本，这限制了基于模型方法的适用性。
+为了解决现有基于模型的范数最优迭代学习控制方法的固有缺点，本文针对模型未知的离散线性时不变系统，提出了一种完全数据驱动的迭代学习控制框架，
+仅需采集最少量的输入输出数据即可实现与基于模型的范数最优迭代学习控制等价的跟踪性能。
+
+首先，本文针对持续激励条件导致离线数据采集成本过高的问题，提出了一种最短测试实验设计方法——
+通过逐步避开低维仿射集选取输入信号，使联合 Hankel 矩阵的秩在每一步严格递增，
+直至达到理论最大值，从而以理论上最短的数据长度满足 Willems' 基本引理的应用条件。
+在此基础上，设计了基于最少输入输出数据的范数最优迭代学习控制算法。
+理论分析证明，所提算法可保证跟踪误差范数单调收敛至零。
+最后，通过两组不同复杂程度的期望轨迹进行数值仿真验证。
+实验结果表明，联合 Hankel 矩阵的秩增长过程与理论分析完全一致，
+离线数据长度达到理论最小值；算法在两种轨迹下均实现了误差范数的单调递减和高精度跟踪，
+验证了所提方法的有效性。
 \end{cabstract}
 
 \begin{eabstract}
-Here is the Abstract in English. And this is a test sentence, just for
-a test to see how the buaathesis works. You can just ignore this.\par
-This is another pargraph.
+Iterative learning control improves tracking accuracy by updating the control
+input along the iteration axis using data from previous trials.
+Norm-optimal ILC, as a typical model-based ILC algorithm, features a systematic design framework that balances
+tracking performance and control effort, and guarantees monotonic convergence of the
+tracking error. However, it relies on an accurate plant model. In practice, such models
+are difficult to obtain for complex systems, and precise system identification often
+incurs substantial calculation and time costs, limiting the applicability of model-based
+approaches. To overcome these, this thesis proposes a fully data-driven ILC
+framework for unknown discrete-time linear time-invariant systems that matches the
+tracking performance of model-based NOILC using only a minimal set of
+input-output data.
+
+To reduce offline data acquisition costs imposed by the
+persistency of excitation condition, a shortest-experiment design method is proposed:
+by selecting input signals that avoid a low-dimensional affine set at each step, the
+rank of the joint Hankel matrix increases strictly by one per step until reaching its
+theoretical maximum, yielding the minimum data length required by
+Willems' fundamental lemma. Building on this, a minimal-data NOILC algorithm is
+developed and proven to guarantee monotonic convergence of the tracking error to zero.
+Numerical simulations on two reference trajectories of different complexity show that
+the rank growth of the joint Hankel matrix matches the theoretical prediction,
+and the offline data length attains the theoretical minimum. For both trajectories,
+the algorithm achieves monotonic decay of the error norm and high-precision tracking,
+confirming the effectiveness of the proposed method.
 \end{eabstract}

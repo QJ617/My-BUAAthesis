@@ -1,10 +1,3 @@
-% !Mode:: "TeX:UTF-8"
-\chapter{仿真程序代码}
-
-本文仿真实验基于Python实现，主要包括最短实验类、数据驱动迭代学习控制类以及主程序三个部分。代码中给出了两种期望轨迹的公式及对应实现，当前默认使用轨迹二，切换轨迹一只需修改对应行即可。
-
-{\small\ttfamily
-\begin{verbatim}
 # -*- coding: utf-8 -*-
 """
 Created on Mon Apr  6 20:35:58 2026
@@ -183,7 +176,7 @@ class DataDrivenILC:
         print(f"数据形状: u_exp {self.u_exp.shape}, y_exp {self.y_exp.shape}")
 
         if self.N < self.n:
-            raise ValueError(f"控制时域 N={self.N} 必须 >= 系统阶次 n={self.n}")
+            raise ValueError(f"控制时域 N={self.N} 必须 ≥ 系统阶次 n={self.n}")
         if self.t_len < self.N:
             raise ValueError(f"实验数据长度 {self.t_len} < 控制时域 {self.N}")
 
@@ -216,13 +209,13 @@ class DataDrivenILC:
 
     def _compute_W0(self):
         M = self.H_Lu.shape[1]
-        A_eq = np.vstack([self.U_p, self.Y_p, self.U_f])
+        A_eq = np.vstack([self.U_p, self.Y_p, self.U_f])   
         b = np.vstack([np.zeros((self.n*self.m, M)),
                        np.zeros((self.n*self.p, M)),
-                       self.H_Lu[self.n*self.m:, :]])
+                       self.H_Lu[self.n*self.m:, :]])      
         G = np.linalg.pinv(A_eq) @ b
         Y0 = self.Y_f @ G
-        self.W0 = np.vstack([self.H_Lu, Y0])
+        self.W0 = np.vstack([self.H_Lu, Y0])             
         print(f"W0 形状: {self.W0.shape}")
 
     def _compute_gain(self):
@@ -233,8 +226,8 @@ class DataDrivenILC:
                         np.zeros(((self.N) * self.p, self.L * self.m))])
         K = I0.T @ self.W0 @ pinv @ self.W0.T @ self.S   # (N*m, N*m + (N-n)*p)
         # 取未来输入和未来误差部分
-        self.K = K[self.n*self.m:, self.N*self.m:]
-
+        self.K = K[self.n*self.m:, self.N*self.m:]      
+    
 
     def run(self, system, r, u0=None, max_iter=100, tol=1e-5):
         expected_len = L * self.p
@@ -290,13 +283,11 @@ if __name__ == "__main__":
     print(f"最短实验数据长度: {len(u_exp)}, y_exp形状: {y_exp.shape}")
 
     # 2. 设定 ILC 参数
-    N = L - n
+    N = L - n 
     t = np.linspace(0, 2 * np.pi, L, dtype=float)
     # ------------------------------------------------------------------
     # 轨迹一：衰减正弦波
-    # r_1(t) = 0,                                  t = 0, 1
-    # r_1(t) = 0.5 * (0.98)^t * sin(5t),           t = 2, 3, ..., 260
-    # 对应代码：r_full = (0.98**t) * np.sin(5*t) * 0.5
+    #r_full = (0.98**t) * np.sin(5*t) * 0.5
     #
     # 轨迹二：组合衰减正余弦波（当前使用）
     # r_2(t) = 0,                                  t = 0, 1
@@ -306,7 +297,7 @@ if __name__ == "__main__":
     # 期望轨迹
     r = np.zeros(L * p)
     r[n:] = r_full[n:]      # 只跟踪后 N 步
-
+   
     print(f"期望轨迹长度: {len(r)}")
 
     # 3. 初始化数据驱动 ILC
@@ -332,7 +323,7 @@ if __name__ == "__main__":
     plt.figure()
     plt.semilogy(errors)
     plt.xlabel("迭代次数")
-    plt.ylabel("跟踪误差范数")
+    plt.ylabel("跟着误差范数")
     plt.title("迭代学习控制收敛性")
     plt.grid(True)
 
@@ -347,5 +338,3 @@ if __name__ == "__main__":
     plt.title("实际输出跟踪期望轨迹效果")
     plt.grid(True)
     plt.show()
-\end{verbatim}
-}

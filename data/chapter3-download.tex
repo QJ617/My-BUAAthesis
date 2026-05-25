@@ -1,72 +1,8 @@
 % !Mode:: "TeX:UTF-8"
 \chapter{数据驱动范数最优迭代学习控制}
 
-\section{预备知识与问题描述}
-
-考虑一个最小实现（能控能观）的离散线性时不变系统：
-\begin{equation}
-	\begin{aligned}
-		x_k(t+1) &= A x_k(t) + B u_k(t), \\
-		y_k(t) &= C x_k(t),\\
-		x_k(0) &= x_0, \ \forall k\in\mathbb{N}
-	\end{aligned}
-	\label{eq:sys}
-\end{equation}
-其中，$n \geq 0$，$m, p \geq 1$，$A \in \mathbb{R}^{n \times n}$，$B \in \mathbb{R}^{n \times m}$，$C \in \mathbb{R}^{p \times n}$，$D \in \mathbb{R}^{p \times m}$，\(u_k(t)\in\mathbb{R}^m\)，\(y_k(t)\in\mathbb{R}^p\)，\(x_k(t)\in\mathbb{R}^n\)。$u_k(t)$、$y_k(t)$ 和 $x_k(t)$ 分别为系统输入、输出和状态，系统的阶数为 \(n\)，输入维数为 \(m\)，输出维数为 \(p\)。$k \in \mathbb{N}$ 为迭代指标，$t \in [0, T]$ 为时间指标。系统 \eqref{eq:sys} 在有限时间区间内重复运行。当时间到达 $T$ 时，时间 $t$ 重置为 0，状态重置为相同的初始状态 $x_k(0) = x_0, \forall k \in \mathbb{N}$，然后开始下一次迭代。
-
-我们采用“提升形式”表示（Hätönen et al., 2004），并且假设相对度为1，即 $\operatorname{rank}(CB) = p$，系统输入、输出以及期望轨迹定义为
-\begin{align}
-	\mathbf{u}_k &= [u_k(0), u_k(1),\dots,u_k(T-1)]^\top \in \mathbb{R}^{mT},\\
-	\mathbf{y}_k &= [y_k(1), y_k(2),\dots,y_k(T)]^\top \in \mathbb{R}^{pT},\\
-	\mathbf{r} &= [r(1), r(2),\dots,r(T)]^\top \in \mathbb{R}^{pT}
-	\label{eq:lifted}
-\end{align}
-则系统输入输出关系可写为：
-\begin{equation}
-	\mathbf{y}_k = \mathbf{G} \mathbf{u}_k + \mathbf{d}
-\end{equation}
-其中，系统矩阵 $\mathbf{G}$ 为 Toeplitz 矩阵：
-\begin{equation}
-	\mathbf{G} = \begin{bmatrix}
-		CB & 0 & \cdots & 0 \\
-		CAB & CB & \cdots & 0 \\
-		\vdots & \vdots & \ddots & \vdots \\
-		CA^{T-1}B & CA^{T-2}B & \cdots & CB
-	\end{bmatrix}
-\end{equation}
-而 $\mathbf{d}$ 为系统初始响应：
-\begin{equation}
-	\mathbf{d} = \big[ CAx_0, CA^{2}x_0, \dots, CA^{T}x_0 \big]^\top
-\end{equation}
-定义相应的跟踪误差 $\mathbf{e}_k = \mathbf{r} - \mathbf{y}_k$，则
-\begin{equation}
-	\mathbf{e}_k = \mathbf{r} - \mathbf{y}_k = \mathbf{r} - \mathbf{G} \mathbf{u}_k - \mathbf{d}
-	\label{eq:tracking_error}
-\end{equation} 
-输入 $\mathbf{u}_k$ 和输出 $\mathbf{y}_k$ 分别定义在 Hilbert 空间 $\mathbf{U} = \mathbb{R}^{mT}$ 和 $\mathbf{Y} = \mathbb{R}^{pT}$ 上，其内积及诱导范数分别为
-\begin{equation}
-	\langle \mathbf{u}_k, \tilde{\mathbf{u}_k} \rangle_R = \mathbf{u}_k^\top R \tilde{\mathbf{u}_k}, \quad \langle \mathbf{y}_k, \tilde{\mathbf{y}_k} \rangle_Q = \mathbf{y}_k^\top Q \tilde{\mathbf{y}_k}
-	\label{eq:inner}
-\end{equation}
-\begin{equation}
-	\|\mathbf{u}_k\|_R = \sqrt{\mathbf{u}_k^ \top R \mathbf{u}_k}, \quad \|\mathbf{y}_k\|_Q = \sqrt{\mathbf{y}_k^ \top Q \mathbf{y}_k}
-	\label{eq:norm}
-\end{equation}
-其中\(\tilde{\mathbf{u}_k} \in \mathbf{U}\) 和 \(\tilde{\mathbf{y}_k} \in \mathbf{Y}\) 为任意向量，$R$ 和 $Q$ 为正定加权矩阵。
-
-基于以上预备知识，ILC致力于设计迭代学习控制律
-\begin{equation}
-	\mathbf{u}_{k+1}=\mathbf{u}_k+\Delta \mathbf{u}_{k+1}
-	\label{kongzhiqi}
-\end{equation}
-实现控制输入沿迭代轴的更新，从而确保系统输出能够精确跟踪给定的期望轨迹$\mathbf{r}$，即
-\begin{equation}
-	\lim_{k\to\infty} \mathbf{y}_k=\mathbf{r}
-	\label{mubiao}
-\end{equation}
-现有研究已经在线性时不变系统的迭代学习控制方面取得了丰富成果，其中基于模型的范数最优 ILC 被广泛视为性能标杆。然而这类方法高度依赖系统的精确数学模型，在实际工程中，系统模型往往难以获得：一方面，许多复杂过程（如柔性机械臂、智能材料等）机理复杂，参数难以辨识，导致建模成本高昂且精度有限；另一方面，系统参数可能随运行条件变化，使得基于固定模型的控制设计缺乏鲁棒性。因此，在模型未知或仅能获得输入输出数据的情况下，如何设计有效的迭代学习控制器成为一个重要的研究问题。为摆脱对模型的依赖，数据驱动方法应运而生。
-
-我们首先给出一些记号，给定 \(i, j \in \mathbb{Z}\) 且 \(i \leq j\)，记 \([i, j]\) 为所有介于 \(i\) 和 \(j\) 之间的整数构成的有序集合，包含 \(i\) 和 \(j\) 本身。按惯例，若 \(i > j\)，则 \([i, j] = \emptyset\)。
+\section{问题描述}
+首先给出一些记号，给定 \(i, j \in \mathbb{Z}\) 且 \(i \leq j\)，记 \([i, j]\) 为所有介于 \(i\) 和 \(j\) 之间的整数构成的有序集合，包含 \(i\) 和 \(j\) 本身。按惯例，若 \(i > j\)，则 \([i, j] = \emptyset\)。
 
 设 \(i, j \in \mathbb{Z}\) 且 \(i \leq j\)。又设 \(f(i), f(i+1), \ldots, f(j) \in \mathbb{R}^n\) 是一个向量序列。定义
 \begin{equation}
@@ -83,65 +19,77 @@
 	\end{bmatrix}
 	\label{eq:hankel_def}
 \end{equation}
-采集一段长度为 \(J\) 的输入数据 \(\mathbf{u_{d,{[0,J-1]}}} = [u_d(0), u_d(1), \dots, u_d(J-1)]^\top\) 施加于系统，并记录对应的输出数据 \(\mathbf{y_{d,{[0,J-1]}}} = [y_d(0), y_d(1), \dots, y_d(J-1)]^\top\)。
-令 \( L \in [0, J-1] \)，并记由数据 \(\mathbf{u_{d,{[0,J-1]}}}, \mathbf{y_{d,{[0,J-1]}}}\) 构造的具有 \( L \) 个块行的 Hankel 矩阵为
+采集一段长度为 \(J\) 的输入数据如下
 \begin{equation}
-	H_L(\mathbf{u_{d,{[0,J-1]}}}) = \begin{bmatrix}
-		u_d(0)   & u_d(1)   & \cdots & u_d(J-L) \\
-		u_d(1)   & u_d(2)   & \cdots & u_d(J-L+1)   \\
+	\mathbf{u}^{\mathrm{d}}_{[0,J-1]} = [u^d(0), u^d(1), \dots, u^d(J-1)]
+	\label{eq:input_sequence}
+\end{equation}
+将其施加于系统，并记录对应的输出数据
+\begin{equation}
+	\mathbf{y}^{\mathrm{d}}_{[0,J-1]} = [y^d(0), y^d(1), \dots, y^d(J-1)]
+	\label{eq:y_sequence}
+\end{equation}
+令 \( L \in \{0, 1, \dots, J-1\} \)，并记由数据 \(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}, \mathbf{y}^{\mathrm{d}}_{[0,J-1]}\) 构造的具有 \( L \) 个行块的 Hankel 矩阵为
+\begin{equation}
+	H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) = \begin{bmatrix}
+		u^d(0)   & u^d(1)   & \cdots & u^d(J-L) \\
+		u^d(1)   & u^d(2)   & \cdots & u^d(J-L+1)   \\
 		\vdots   & \vdots   & \ddots & \vdots     \\
-		u_d(L-1)   & u_d(L) & \cdots & u_d(J-1)
+		u^d(L-1)   & u^d(L) & \cdots & u^d(J-1)
 	\end{bmatrix}
 	\label{eq:hankel_u}
 \end{equation}
 \begin{equation}
-	H_L(\mathbf{y_{d,{[0,J-1]}}}) = \begin{bmatrix}
-		y_d(0)   & y_d(1)   & \cdots & y_d(J-L) \\
-		y_d(1)   & y_d(2)   & \cdots & y_d(J-L+1)   \\
+	H_L(\mathbf{y}^{\mathrm{d}}_{[0,J-1]}) = \begin{bmatrix}
+		y^d(0)   & y^d(1)   & \cdots & y^d(J-L) \\
+		y^d(1)   & y^d(2)   & \cdots & y^d(J-L+1)   \\
 		\vdots   & \vdots   & \ddots & \vdots     \\
-		y_d(L-1)   & y_d(L) & \cdots & y_d(J-1)
+		y^d(L-1)   & y^d(L) & \cdots & y^d(J-1)
 	\end{bmatrix}
 	\label{eq:hankel_y}
 \end{equation}
-若 Hankel 矩阵 \eqref{eq:hankel_u} 行满秩，则称输入数据 \( \mathbf{u_{d,{[0,J-1]}}} \) 满足阶数为 \( L \) 的持续激励条件。
+若 Hankel 矩阵 \eqref{eq:hankel_u} 行满秩，则称输入数据 \( \mathbf{u}^{\mathrm{d}}_{[0,J-1]} \) 满足阶数为 \( L \) 的持续激励条件。
 将以上两个 Hankel 矩阵上下堆叠得到联合 Hankel 矩阵
 \begin{equation}
-	H_{L,J} := \begin{bmatrix} H_L(\mathbf{y_{d,{[0,J-1]}}}) \\ H_L(\mathbf{u_{d,{[0,J-1]}}}) \end{bmatrix}
-	= \begin{bmatrix}
-		y_d(0) & \cdots & y_d(J-L) \\
-		y_d(1) & \cdots & y_d(J-L+1) \\
-		\vdots & \ddots & \vdots \\
-		y_d(L-1) & \cdots & y_d(J-1) \\
-		u_d(0) & \cdots & u_d(J-L) \\
-		u_d(1) & \cdots & u_d(J-L+1) \\
-		\vdots & \ddots & \vdots \\
-		u_d(L-1) & \cdots & u_d(J-1)
-	\end{bmatrix}
+	\begin{aligned}
+		H_{L,J} &:= \begin{bmatrix} H_L(\mathbf{y}^{\mathrm{d}}_{[0,J-1]}) \\ H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) \end{bmatrix} \\
+		&= \begin{bmatrix}
+			y^d(0) & \cdots & y^d(J-L) \\
+			y^d(1) & \cdots & y^d(J-L+1) \\
+			\vdots & \ddots & \vdots \\
+			y^d(L-1) & \cdots & y^d(J-1) \\
+			u^d(0) & \cdots & u^d(J-L) \\
+			u^d(1) & \cdots & u^d(J-L+1) \\
+			\vdots & \ddots & \vdots \\
+			u^d(L-1) & \cdots & u^d(J-1)
+		\end{bmatrix}
+	\end{aligned}
 	\label{eq:Hkt}
 \end{equation}
-我们还定义
+另外，还定义
 \begin{equation}
-	G_{L,J} := \begin{bmatrix} H_{L-1}(\mathbf{y_{d,{[0,J-2]}}}) \\ H_L(\mathbf{u_{d,{[0,J-1]}}}) \end{bmatrix}
+	G_{L,J} := \begin{bmatrix} H_{L-1}(\mathbf{y}^{\mathrm{d}}_{[0,J-2]}) \\ H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) \end{bmatrix}
 	\label{eq:Gkt}
 \end{equation}
-注意，\( G_{L,J} \) 可以通过从 \( H_{L,J} \) 中移除最后一行的输出 \( \mathbf{y_{d,{[L-1,J-1]}}} \) 得到。
-基于这些离线数据，数据驱动 ILC 问题可以描述如下：
+注意，\( G_{L,J} \) 可以通过从 \( H_{L,J} \) 中移除最后一行的输出 \( \mathbf{y}^{\mathrm{d}}_{[L-1,J-1]} \) 得到。
+基于这些离线数据，数据驱动 迭代学习控制 问题可以描述如下：
 \begin{problemnode}
-	1.设计最短控制输入$\mathbf{u_{d,{[0,J-1]}}}$，确保输入输出数据 \( \mathbf{u_{d,{[0,J-1]}}} \) 和 \( \mathbf{y_{d,{[0,J-1]}}} \) 构造的联合 Hankel 矩阵的秩达到理论最大值$Lm+n$。这一秩条件保证了离线数据包含系统的全部动态信息，从而可用于后续的数据驱动控制器设计。\\
-	2.给定输入输出数据 \( \mathbf{u_{d,{[0,J-1]}}} \) 和 \( \mathbf{y_{d,{[0,J-1]}}} \)。在不使用解析系统模型 \( \mathbf{G} \) 的情况下，利用输入输出数据构建形如 \eqref{kongzhiqi} 的迭代学习控制器，实现 \eqref{mubiao} 中的轨迹跟踪目标。
+	1.设计最短控制输入$\mathbf{u}^{\mathrm{d}}_{[0,J-1]}$，确保输入输出数据 \( \mathbf{u}^{\mathrm{d}}_{[0,J-1]} \) 和 \( \mathbf{y}^{\mathrm{d}}_{[0,J-1]} \) 构造的联合 Hankel 矩阵的秩达到理论最大值。这一秩条件保证了离线数据包含系统的全部动态信息，从而可用于后续的数据驱动控制器设计。\\
+	2.基于问题1中收集到的最短输入输出数据 \( \mathbf{u}^{\mathrm{d}}_{[0,J-1]} \) 和 \( \mathbf{y}^{\mathrm{d}}_{[0,J-1]} \)，在不使用解析系统模型 \( \mathbf{G} \) 的情况下，利用输入输出数据构建形如 \eqref{kongzhiqi} 的迭代学习控制器，实现 \eqref{mubiao} 中的轨迹跟踪目标。
 \end{problemnode}
 
 \section{最短测试实验设计}
+\label{sec:shortest}
 
-本小节针对问题 1 提出具体的数据生成方法：我们想要设计一段长度最短的输入序列 \(\mathbf{u_{d,[0,J-1]}}\)，使得由此产生的输入输出数据构造的联合 Hankel 矩阵的秩达到理论值 \(Lm + n\)。在后文的分析中，我们可以看到该条件等价于数据满足 Willems' 基本引理的要求，从而保证离线数据包含系统的全部动态信息。然而，基于 Willems' 基本引理的方法要求输入数据具有足够高的持续激励阶数，这往往导致离线数据长度过长，进而带来数据采集成本高昂、系统安全性风险增加以及后续控制计算负担沉重等问题。为此，我们可以反复利用如下引理逐步增加联合 Hankel 矩阵的秩，以实现数据长度最小化。
+本小节针对问题 1 提出具体的数据生成方法，即设计一段长度最短的输入序列 \(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}\)，使得由此产生的输入输出数据构造的联合 Hankel 矩阵 \eqref{eq:Hkt} 的秩达到理论最大值。在后文的分析中，可以看到该条件等价于数据满足 Willems' 基本引理的要求，从而保证离线数据包含系统的全部动态信息。然而，基于 Willems' 基本引理的方法要求输入数据具有足够高的持续激励阶数，这往往导致离线数据长度过长，进而带来数据采集成本高昂、系统安全性风险增加以及后续控制计算负担沉重等问题。为此，可以反复利用如下引理逐步增加联合 Hankel 矩阵的秩，以实现数据长度最小化。
 
-\begin{lemma}[The shortest experiment]
+\begin{lemma}[最短测试实验]
 	设 \(J \geq 2\)，\(L \geq 1\)。如果
 	\begin{equation}
 		\operatorname{rank} G_{L,J} < m + \operatorname{rank} H_{L-1,J}
 		\label{eq:cond_rank}
 	\end{equation}
-	则存在一个 \((m-1)\) 维仿射集 \(A_J \subseteq \mathbb{R}^m\)，使得只要 \(u_d(J) \notin A_J\)，就有
+	则存在一个 \((m-1)\) 维仿射集 \(A_J \subseteq \mathbb{R}^m\)，使得只要 \(u^d(J) \notin A_J\)，就有
 	\begin{equation}
 		\operatorname{rank} H_{L,J+1} = \operatorname{rank} H_{L,J} + 1
 		\label{eq:rank_increase}
@@ -163,7 +111,7 @@
 	\]
 	定义集合
 	\[
-	\mathcal{A}_J := \left\{ v \in \mathbb{R}^m \;\middle|\; \eta_L v + \sum_{i=0}^{L-1} \xi_i^\top y(J-L+i) + \eta_i^\top u(J-L+i) = 0 \right\}
+	\mathcal{A}_J := \left\{ v \in \mathbb{R}^m \;\middle|\; \eta_L^\top v + \sum_{i=0}^{L-1} \xi_i^\top y(J-L+i) + \eta_i^\top u(J-L+i) = 0 \right\}
 	\]
 	若 \(u(J) \notin \mathcal{A}_J\)，则
 	\[
@@ -175,11 +123,55 @@
 	由于 \(\ker G_{L,J+1} \subseteq \ker G_{L,J}\)，由上式可得 \(\dim \ker G_{L,J+1} < \dim \ker G_{L,J}\)。因此，\(G_{L,J+1}\) 的最后一列不能表示为 \(G_{L,J}\) 的列的线性组合，进而 \(H_{L,J+1}\) 的最后一列也不能表示为 \(H_{L,J}\) 的列的线性组合，于是 \eqref{eq:rank_increase} 成立。证毕。
 \end{proof}
 
-通过该最短测试实验设计，我们可以成功解决问题 1，为后续数据驱动 ILC 提供信息量丰富且长度最短的离线数据。下一小节将基于这些数据设计迭代学习控制律，实现问题 2 的轨迹跟踪目标。
+通过该最短测试实验设计，可以成功解决问题 1。现将上述思想整理为如下算法。
 
-\section{数据驱动范数最优迭代学习控制}
+\begin{algorithm}[H]
+	\small
+	\SetAlgoLined
+	\LinesNumbered
+	\SetAlgorithmName{算法}{算法}{算法目录}
+	\SetKwInOut{KwIn}{输入}
+	\SetKwInOut{KwOut}{输出}
+	\SetKw{Return}{返回}
+	\SetKwFor{While}{当}{循环}{结束循环}
+	\SetKwFor{Repeat}{直至}{重复}{结束重复}
+	\SetKwFor{If}{如果}{则}{结束}
+	\caption{最短测试实验}
+	\label{alg:shortest_experiment}
 
-在本节中，我们介绍 Willems' 基本引理，该引理允许将系统行为直接表示为输入输出数据的线性组合。利用这一性质，数据驱动控制方法能够实现与基于模型的控制设计相同的控制性能。本节涵盖基本概念、关键引理以及数据驱动仿真算法。需要注意的是，数据驱动控制将在行为框架下进行阐述。有关行为系统理论的更多信息，请参阅 Willems (1991) 以及 Markovsky 和 Dörfler (2021)。
+	\KwIn{系统阶数 $n$，输入维数 $m$，Hankel 矩阵行块数 $L$}
+	\KwOut{输入输出数据 $\mathbf{u}^{\mathrm{d}}_{[0,J+i-1]}$、$\mathbf{y}^{\mathrm{d}}_{[0,J+i-1]}$}
+
+	\BlankLine
+	\tcp{初始化}
+	采集长度为 $J$ 的初始输入输出数据 $\mathbf{u}^{\mathrm{d}}_{[0,J-1]}$、$\mathbf{y}^{\mathrm{d}}_{[0,J-1]}$\;
+	构造联合 Hankel 矩阵 $H_{L,J}$ 以及辅助矩阵 $G_{L,J}$、$H_{L-1,J}$\;
+	初始化计数器 $i \leftarrow 0$\;
+
+	\BlankLine
+	\While{$\operatorname{rank} G_{L,J+i} < m + \operatorname{rank} H_{L-1,J+i}$}{
+		\tcp{内循环：确保本次输入使秩严格增加 $1$，避免落入测度为零的仿射集}
+		\Repeat{$\operatorname{rank} H_{L,J+i+1} = \operatorname{rank} H_{L,J+i} + 1$}{
+			随机选取 $u^d(J+i)$\;
+			将 $u^d(J+i)$ 施加于系统，记录输出 $y^d(J+i)$\;
+			将新数据临时追加到序列末端，构造临时联合 Hankel 矩阵 $H_{L,J+i+1}$\;
+			\If{$\operatorname{rank} H_{L,J+i+1} < \operatorname{rank} H_{L,J+i} + 1$}{
+				丢弃本次 $u^d(J+i)$ 与 $y^d(J+i)$，重新随机选取\;
+			}
+		}
+		\tcp{秩已确认增加，接受本次数据}
+		将 $u^d(J+i)$ 与 $y^d(J+i)$ 正式追加到数据序列中\;
+		$i \leftarrow i + 1$\;
+		重构 $H_{L,J+i}$、$G_{L,J+i}$ 以及 $H_{L-1,J+i}$\;
+	}
+	\Return $\mathbf{u}^{\mathrm{d}}_{[0,J+i-1]}$、$\mathbf{y}^{\mathrm{d}}_{[0,J+i-1]}$
+\end{algorithm}
+
+引理~\ref{lem:shortest} 的条件 \eqref{eq:cond_rank} 从代数上判定了联合 Hankel 矩阵的秩能否继续增长。当严格不等式成立时，$\ker H_{L-1,J} \times \{0_m\}$ 是 $\ker G_{L,J}$ 的真子空间，这意味着 $G_{L,J}$ 的左零空间中存在一个向量，其最后 $m$ 个分量（记为 $\eta_L$）不全为零，此非零分量 $\eta_L$ 正是新加入的输入 $u^d(J)$ 能够扩展列空间的代数根源。反之，若等号成立，则 $\ker H_{L-1,J} \times \{0_m\}$ 与 $\ker G_{L,J}$ 完全相等，$G_{L,J}$ 的列空间不再有未被 $H_{L-1,J}$ 覆盖的方向，此后无论再添加多少数据，联合 Hankel 矩阵的秩都不会继续上升。从引理的证明还可以看出，使秩无法增加的输入 $u^d(J)$ 恰好构成 $\mathbb{R}^m$ 中的一个 $(m-1)$ 维仿射集 $\mathcal{A}_J$。$\mathcal{A}_J$ 在 $\mathbb{R}^m$ 中的勒贝格测度始终为零：当 $m=1$ 时，$\mathcal{A}_J$ 退化为一个孤立点；当 $m>1$ 时，$\mathcal{A}_J$ 是一个低维超平面，均不影响随机采样的有效性。因此在实际执行中，$u^d(J)$ 只需从任意连续分布（如高斯分布）中随机抽取，便能以概率 $1$ 避开 $\mathcal{A}_J$，不必显式求解 $\mathcal{A}_J$ 的具体表达式。这一逐次扩秩策略在代数本质上与低秩逼近理论中通过秩-$1$ 修正逐步提升矩阵秩的思想相通\upcite{markovsky2012}。算法~\ref{alg:shortest_experiment} 表明，只要不等式 \eqref{eq:cond_rank} 成立，就可以若干次地应用引理~\ref{lem:shortest} 以增加联合 Hankel 矩阵的秩，这为设计最短控制输入数据提供了有力的手段。
+
+\section{数据驱动控制器设计}
+
+在本节中，我们介绍 Willems' 基本引理，该引理允许将任一系统轨迹直接表示为输入输出数据的线性组合。利用这一性质，数据驱动控制方法能够实现与基于模型的控制设计相同的控制性能。本节涵盖基本概念、关键引理以及数据驱动仿真算法。需要注意的是，数据驱动控制将在行为框架下进行阐述。有关行为系统理论的更多信息，请参阅 Willems\upcite{willems1991}以及 Markovsky 和 Dörfler\upcite{markovsky2021}。
 
 首先介绍一些必要的定义。考虑系统 \eqref{eq:sys}，取定某一迭代指标$k$（为方便起见去掉下标），令长度为$L$的输入和输出超向量为
 \begin{equation}
@@ -191,7 +183,10 @@
 \end{equation}
 长度为 \(L\) 的系统轨迹可写为
 \begin{equation}
-	\mathbf{w} = \begin{bmatrix} \mathbf{u} \\ \mathbf{y} \end{bmatrix} = \operatorname{col}(\mathbf{u}, \mathbf{y}) \in \mathbb{R}^{(m+p)L}
+	\begin{aligned}
+		\mathbf{w} &= \begin{bmatrix} \mathbf{u} \\ \mathbf{y} \end{bmatrix} \\
+		&= \operatorname{col}(\mathbf{u}, \mathbf{y}) \in \mathbb{R}^{(m+p)L}
+	\end{aligned}
 	\label{eq:trajectory}
 \end{equation}
 由系统 \eqref{eq:sys} 生成的所有长度为 \(L\) 的轨迹的集合构成一个子空间 \(\mathcal{G}_L\)，其定义为
@@ -201,34 +196,40 @@
 	\right\}
 	\label{eq:traj_space}
 \end{equation}
-然而需要注意，这些轨迹未必对应于同一个初始状态 $x_0$。迭代学习控制的一个关键特征在于，每次迭代开始时系统的状态会被重置为 $x_0$。在数据驱动的框架下，系统动态未知且无法直接获取状态信息。因此，我们无法显式地重置状态，而必须从输入输出数据中推断出初始条件。为此，定义系统滞后 \( lag \) 为系统的能观性指数，即使得能观性矩阵
+然而需要注意，这些轨迹未必对应于同一个初始状态 $x_0$。迭代学习控制的一个关键特征在于，每次迭代开始时系统的状态会被重置为 $x_0$。在数据驱动的框架下，系统动态未知且无法直接获取状态信息。因此，我们无法显式地重置状态，而必须从输入输出数据中推断出初始条件。为此，定义系统滞后（lag）如下：满足
 \begin{equation}
-	O = \begin{bmatrix}
-		C \\
-		CA \\
-		\vdots \\
-		CA^{lag-1}
+	\operatorname{rank} \begin{bmatrix}
+		C \\ CA \\ \vdots \\ CA^{\ell}
 	\end{bmatrix}
-	\label{eq:obs_matrix}
+	= \operatorname{rank} \begin{bmatrix}
+		C \\ CA \\ \vdots \\ CA^{\ell-1}
+	\end{bmatrix}
+	\label{eq:lag_rank}
 \end{equation}
-的秩等于 \( n \) 的最小整数 \( lag \)。系统的初始轨迹定义为
+的最小非负整数 $\ell \geq 0$（令 $\ell = 0$ 时右侧矩阵为空矩阵，秩取 $0$）。系统的初始轨迹定义为
 \begin{equation}
-	\mathbf{w_{ini}} := \begin{bmatrix} \mathbf{u_{ini}} \\ \mathbf{y_{ini}} \end{bmatrix} \in \mathbb{R}^{(m+p)T_{ini}}
+	\mathbf{w}_{\mathrm{ini}} := \begin{bmatrix} \mathbf{u}_{\mathrm{ini}} \\ \mathbf{y}_{\mathrm{ini}} \end{bmatrix} \in \mathbb{R}^{(m+p)T_{ini}}
 	\label{eq:initial_trajectory}
 \end{equation}
-其中， \( \mathbf{u_{ini}} \) 和 \( \mathbf{y_{ini}} \) 分别为初始输入和初始输出，\( T_{ini} \geq lag \) 为表示初始输入/输出响应长度的整数。此时，时刻 $T_{ini}$ 的内部状态由 $\mathbf{w_{ini}}$ 唯一确定，并可被视为后续轨迹的实际初始条件（I. Markovsky and P. Rapisarda, 2008）。\(\operatorname{col\,span}(\cdot)\) 表示矩阵的列张成的空间。
+其中， \( \mathbf{u}_{\mathrm{ini}} \) 和 \( \mathbf{y}_{\mathrm{ini}} \) 分别为初始输入和初始输出，\( T_{ini} \geq \ell \) 为表示初始输入/输出响应长度的整数。此时，时刻 $T_{ini}$ 的内部状态由 $\mathbf{w}_{\mathrm{ini}}$ 唯一确定，并可被视为后续轨迹的实际初始条件\upcite{markovsky2008}。这一基于数据 Hankel 矩阵的子空间方法与经典子空间辨识\upcite{vanoverschee1996}共享类似的代数结构，但在行为系统框架下无需显式估计状态空间矩阵。\(\operatorname{col\,span}(\cdot)\) 表示矩阵的列张成的空间。
 
 基于上述定义，我们可以定义如下输入和输出 Hankel 矩阵及其分块
 \begin{equation}
-	U = H_{T_{ini}+T}(\mathbf{u_{d,{[0,J-1]}}}) = \begin{bmatrix} U_p \\ U_f \end{bmatrix},
+	\begin{aligned}
+		U &= H_{T_{ini}+T}(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) \\
+		&= \begin{bmatrix} U_p \\ U_f \end{bmatrix}
+	\end{aligned},
 	\qquad
-	Y = H_{T_{ini}+T}(\mathbf{y_{d,{[0,J-1]}}}) = \begin{bmatrix} Y_p \\ Y_f \end{bmatrix}
+	\begin{aligned}
+		Y &= H_{T_{ini}+T}(\mathbf{y}^{\mathrm{d}}_{[0,J-1]}) \\
+		&= \begin{bmatrix} Y_p \\ Y_f \end{bmatrix}
+	\end{aligned}
 	\label{eq:hankel_partition}
 \end{equation}
 其中块 \( U_p \in \mathbb{R}^{mT_{ini} \times (J - T_{ini} - T + 1)} \), \( Y_p \in \mathbb{R}^{pT_{ini} \times (J - T_{ini} - T + 1)} \)（下标 \( p \) 表示“过去”）用于设置初始条件，而块 \( U_f \in \mathbb{R}^{mT \times (J - T_{ini} - T + 1)} \), \( Y_f \in \mathbb{R}^{pT \times (J - T_{ini} - T + 1)} \)（下标 \( f \) 表示“未来”）用于计算系统响应。下面给出数据驱动控制中的重要定理。
 
-\begin{lemma}[Willems et al., 2005]
-	考虑系统 \eqref{eq:sys} 并假设其能控。给定由系统 \eqref{eq:sys} 生成的长度为\( J \) 的数据轨迹 \( \mathbf{w_{d,{[0,J-1]}}} := \operatorname{col}(\mathbf{u_{d,{[0,J-1]}}}, \mathbf{y_{d,{[0,J-1]}}}) \)。若输入 \( \mathbf{u_{d,{[0,J-1]}}} \) 满足阶数为 \( L + n \) 的持续激励条件，则任何由系统 \eqref{eq:sys} 生成的长度为\( L \) 的轨迹 $\mathbf{w}$ 均可表示为 \( H_{L,J} \) 的列的线性组合，且任何线性组合 \( H_{L,J}g \)（其中 \( g \in \mathbb{R}^{J-L+1} \)）都是 \( \mathcal{G}_L \) 的一条轨迹，即
+\begin{lemma}[Willems 等\upcite{willems2005}]
+	考虑系统 \eqref{eq:sys} 并假设其能控。给定由系统 \eqref{eq:sys} 生成的长度为\( J \) 的数据轨迹 \( \mathbf{w}^{\mathrm{d}}_{[0,J-1]} := \operatorname{col}(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}, \mathbf{y}^{\mathrm{d}}_{[0,J-1]}) \)。若输入 \( \mathbf{u}^{\mathrm{d}}_{[0,J-1]} \) 满足阶数为 \( L + n \) 的持续激励条件，则任何由系统 \eqref{eq:sys} 生成的长度为\( L \) 的轨迹 $\mathbf{w}$ 均可表示为 \( H_{L,J} \) 的列的线性组合，且任何线性组合 \( H_{L,J}g \)（其中 \( g \in \mathbb{R}^{J-L+1} \)）都是系统 \eqref{eq:sys} 的一条轨迹，即
 	\begin{equation}
 		\operatorname{col\,span}(H_{L,J}) = \mathcal{G}_L
 		\label{eq:willems}
@@ -236,9 +237,12 @@
 	\label{lem:willems}
 \end{lemma}
 
-引理 \ref{lem:willems} 表明，系统行为可由满足持续激励条件的已有数据来表示，其有一个重要应用是数据驱动仿真，如下面的算法所示（Markovsky and Rapisarda, 2008）。
+引理 \ref{lem:willems} 的前提是输入数据满足阶数为 $L + n$ 的持续激励条件，该条件要求数据长度至少为 $(m+1)(L+n)-1$，代价高昂。但持续激励条件保证了联合 Hankel 矩阵的行空间充分"丰富"，从而 $\operatorname{rank} H_{L,J}$ 达到行为子空间 $\mathcal{G}_L$ 的维数，对能控能观的系统而言，$\dim \mathcal{G}_L = Lm + n$，且 $\operatorname{col\,span}(H_{L,J}) = \mathcal{G}_L$。同时，回忆引理 \ref{lem:shortest} 的条件 \eqref{eq:cond_rank} 给出了一个逐次判定秩能否继续增长的准则：只要 $\operatorname{rank} G_{L,J} < m + \operatorname{rank} H_{L-1,J}$，就存在使 $\operatorname{rank} H_{L,J}$ 严格加 $1$ 的新输入；当等号成立时，$\ker H_{L-1,J} \times \{0_m\} = \ker G_{L,J}$，列空间的扩展机制耗尽，$\operatorname{rank} H_{L,J}$ 不再增长。那么，对于 $\mathcal{G}_L$ 的维数为 $Lm + n$ 的系统，秩停止增长时的值只能是 $Lm + n$，即条件 \eqref{eq:cond_rank} 的等号成立与 $\operatorname{rank} H_{L,J} = Lm + n$ 是等价的。因此，算法 \ref{alg:shortest_experiment} 以 \eqref{eq:cond_rank} 为循环条件，本质上是在逐步逼近 $Lm + n$ 这个目标秩，且自动在秩饱和时终止，全程仅需 $(m+1)L + n - 1$ 个采样点——比持续激励条件节省了约 $mn$ 个数据点。当算法终止时，联合 Hankel 矩阵的列空间已张成整个 $\mathcal{G}_L$，Willems' 基本引理的前提条件也就得以满足。由此可见，最短测试实验设计提供了一条更经济的路径来达到 Willems' 基本引理对数据信息量的要求，显著压缩了离线实验的数据长度。
+
+下面给出引理 \ref{lem:shortest} 在数据驱动仿真中的直接应用\upcite{markovsky2008}。
 
 \begin{algorithm}[H]
+	\small
 	\SetAlgoLined
 	\SetAlgorithmName{算法}{算法}{算法目录}
 	\SetKwInput{KwIn}{输入}
@@ -246,11 +250,11 @@
 	\SetKw{Return}{返回}
 	\caption{数据驱动仿真}
 	\label{alg:data_driven_simulation}
-	\KwIn{数据轨迹 $\mathbf{w_{d,{[0,J-1]}}}$，初始轨迹 $\mathbf{w_{ini}}$，输入 $\mathbf{u}$}
+	\KwIn{数据轨迹 $\mathbf{w}^{\mathrm{d}}_{[0,J-1]}$，初始轨迹 $\mathbf{w}_{\mathrm{ini}}$，输入 $\mathbf{u}$}
 	\KwOut{系统输出 $\mathbf{y}$}
 	求解矩阵方程：
 	\begin{equation}
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \end{bmatrix} g = \begin{bmatrix} \mathbf{u_{ini}} \\ \mathbf{y_{ini}} \\ \mathbf{u} \end{bmatrix}
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \end{bmatrix} g = \begin{bmatrix} \mathbf{u}_{\mathrm{ini}} \\ \mathbf{y}_{\mathrm{ini}} \\ \mathbf{u} \end{bmatrix}
 		\label{eq:sim_g}
 	\end{equation}
 	计算输出：
@@ -268,6 +272,7 @@
 其中 \( W_0 \) 可通过以下算法计算。
 
 \begin{algorithm}[H]
+	\small
 	\SetAlgoLined
 	\SetAlgorithmName{算法}{算法}{算法目录}
 	\SetKwInput{KwIn}{输入}
@@ -275,7 +280,7 @@
 	\SetKw{Return}{返回}
 	\caption{零初始条件子行为的数据驱动矩阵计算}
 	\label{alg:zero_initial_matrix}
-	\KwIn{数据轨迹 $\mathbf{w_{d,{[0,J-1]}}}$}
+	\KwIn{数据轨迹 $\mathbf{w}^{\mathrm{d}}_{[0,J-1]}$}
 	\KwOut{零初始条件子行为 $\mathcal{G}_L^0$ 的数据驱动矩阵表示 $W_0$}
 	求解以下方程：
 	\begin{equation}
@@ -283,7 +288,7 @@
 		\begin{bmatrix}
 			0_{mT_{\mathrm{ini}} \times (J - T + 1)} \\
 			0_{pT_{\mathrm{ini}} \times (J - T + 1)} \\
-			H_L(\mathbf{u_{d,{[0,J-1]}}})
+			H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]})
 		\end{bmatrix}
 		\label{eq:solve_g}
 	\end{equation}
@@ -294,14 +299,17 @@
 	\end{equation}
 	于是，$W_0$ 可写为
 	\begin{equation}
-		W_0 = \begin{bmatrix} H_L(\mathbf{u_{d,{[0,J-1]}}}) \\ Y_0 \end{bmatrix}
+		W_0 = \begin{bmatrix} H_L(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}) \\ Y_0 \end{bmatrix}
 		\label{eq:W_0}
 	\end{equation}
 	\Return $W_0$
 \end{algorithm}
-基于模型的范数最优ILC算法中的优化问题利用模型信息来表达系统的输入输出关系，即 \( y = Gu + d \)。如前所述，在实际中辨识这一解析系统模型 \( G \) 可能很困难。因此，在数据驱动范数最优ILC算法中，应用 Willems' 基本引理，利用已有数据来表达系统的输入输出关系，从而无需解析模型，具体算法如下所示。
+现在可以回到本章的核心问题——数据驱动范数最优迭代学习控制。在基于模型的方法中，优化问题 \eqref{eq:model_based_NOILC} 的约束项直接使用系统矩阵 $\mathbf{G}$ 来表达输入到输出的映射 $\mathbf{y} = \mathbf{G}\mathbf{u} + \mathbf{d}$。然而在实际工程中，获取精确的解析模型面临着多重困难：对于机理复杂的对象（如柔性结构、多相流动、生化反应过程等），从第一性原理建立微分方程模型不仅耗时巨大，还常因简化假设而引入未建模动态；即使采用系统辨识的途径，也需要设计专门的辨识实验、选取合适的模型结构并估计参数，整个过程对激励信号的质量、噪声环境和先验知识都有较高要求。此外，系统在实际运行中可能因老化、工况漂移等原因导致动态特性缓慢变化，基于固定模型设计的控制器难以长期维持性能。诸如此类，使得无需模型的数据驱动策略在实际中具有显著的吸引力。
+
+Willems' 基本引理（引理 \ref{lem:willems}）为此提供了关键的替代方案：既然任意长度为 $L$ 的系统轨迹都可表示为联合 Hankel 矩阵列的线性组合，那么输入输出关系便可以用数据分块 $U_p, Y_p, U_f, Y_f$ 来等价描述，完全绕开对 $\mathbf{G}$ 的依赖。上一算法所构造的 $W_0$ 矩阵正是零初始条件下以数据表达的"系统矩阵"，其列空间 $\operatorname{col\,span}(W_0)$ 与 $\begin{bmatrix} I \\ \mathbf{G} \end{bmatrix}$ 的列空间一致。在此框架下，只需将基于模型的最优控制约束替换为数据驱动的等式约束 \eqref{eq:constraint_noilc}，便可在不使用解析模型的前提下求解下一次迭代的控制输入。具体算法如下。
 
 \begin{algorithm}[H]
+	\small
 	\SetAlgoLined
 	\SetAlgorithmName{算法}{算法}{算法目录}
 	\SetKwInput{KwIn}{输入}
@@ -309,116 +317,124 @@
 	\SetKw{Return}{返回}
 	\caption{数据驱动范数最优迭代学习控制}
 	\label{alg:data_driven_NOILC}
-	\KwIn{数据轨迹 $\mathbf{w_{d,{[0,J-1]}}} = \operatorname{col}(\mathbf{u_{d,{[0,J-1]}}}, \mathbf{y_{d,{[0,J-1]}}})$，其中 $\mathbf{u_{d,{[0,J-1]}}}$ 满足阶数为 $T+T_{\mathrm{ini}}+n$ 的持续激励条件；参考轨迹 $\mathbf{r}$；权重矩阵 $Q$ 和 $R$；上一次的输入 $\mathbf{u_k}$ 和误差 $\mathbf{e_k}$}
-	\KwOut{下一次的输入 $\mathbf{u_{k+1}}$}
+	\KwIn{数据轨迹 $\mathbf{w}^{\mathrm{d}}_{[0,J-1]} = \operatorname{col}(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}, \mathbf{y}^{\mathrm{d}}_{[0,J-1]})$，其中 $\mathbf{u}^{\mathrm{d}}_{[0,J-1]}$ 满足阶数为 $T+T_{\mathrm{ini}}+n$ 的持续激励条件；参考轨迹 $\mathbf{r}$；权重矩阵 $Q$ 和 $R$；上一次的输入 $\mathbf{u}_k$ 和误差 $\mathbf{e}_k$}
+	\KwOut{下一次的输入 $\mathbf{u}_{k+1}$}
 	求解如下优化问题：
 	\begin{equation}、
-		\mathbf{u_{k+1}} = \arg \min_{\mathbf{u_{k+1}}} \|\mathbf{e_{k+1}}\|_Q^2 + \|\mathbf{u_{k+1}} - \mathbf{u_k}\|_R^2
+		\mathbf{u}_{k+1} = \arg \min_{\mathbf{u}_{k+1}} \|\mathbf{e}_{k+1}\|_Q^2 + \|\mathbf{u}_{k+1} - \mathbf{u}_k\|_R^2
 		\label{eq:opt_noilc}
 	\end{equation}
 	满足约束
 	\begin{equation}
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} (g_{k+1}-g_k) = \begin{bmatrix} 0\\ 0 \\ \mathbf{u_{k+1}-u_k} \\ \mathbf{y_{k+1}-y_k} \end{bmatrix}, \quad \mathbf{e_{k+1}} = \mathbf{r} - \mathbf{y_{k+1}}
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} (g_{k+1}-g_k) = \begin{bmatrix} 0\\ 0 \\ \mathbf{u}_{k+1} - \mathbf{u}_k \\ \mathbf{y}_{k+1} - \mathbf{y}_k \end{bmatrix}, \quad \mathbf{e}_{k+1} = \mathbf{r} - \mathbf{y}_{k+1}
 		\label{eq:constraint_noilc}
 	\end{equation}
-	\Return $\mathbf{u_{k+1}}$
+	\Return $\mathbf{u}_{k+1}$
 \end{algorithm}
-\begin{proposition}
-	算法 \ref{alg:data_driven_NOILC} 与基于模型的范数最优ILC算法等价。
-	\label{prop:noilc_equivalence}
-\end{proposition}
+\begin{lemma}
+	对能控系统 \eqref{eq:sys}，设离线输入输出数据 \(\mathbf{w}^{\mathrm{d}}_{[0,J-1]} = \operatorname{col}(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}, \mathbf{y}^{\mathrm{d}}_{[0,J-1]})\) 由该系统生成，且输入数据 \(\mathbf{u}^{\mathrm{d}}_{[0,J-1]}\) 满足阶数为 \(T+T_{\mathrm{ini}}+n\) 的持续激励条件。若控制输入 \(\mathbf{u}_{k+1}\) 由算法 \ref{alg:data_driven_NOILC} 给出，则其与基于模型的范数最优迭代学习控制优化问题 \eqref{eq:model_based_NOILC} 的解完全相同，即二者等价。
+	\label{lem:noilc_equivalence}
+\end{lemma}
 
 \begin{proof}
-	为证明该命题，我们展示数据驱动范数最优ILC算法的优化问题等价于基于模型的范数最优ILC优化问题 \eqref{eq:model_based_NOILC}。显然，\eqref{eq:opt_noilc} 的代价函数与基于模型的范数最优ILC优化问题 \eqref{eq:cost_NOILC} 相同。因此，我们将证明 \eqref{eq:constraint_noilc} 的约束部分也与基于模型的范数最优ILC优化问题一致。
+	容易发现，代价函数 \eqref{eq:opt_noilc} 与基于模型的范数最优迭代学习控制优化问题的代价函数相同。因此，为证明该引理，往证约束条件 \eqref{eq:constraint_noilc} 与基于模型的范数最优迭代学习控制优化问题的约束条件也一致。
 	
-	定义虚拟初始输入轨迹 \( \mathbf{u_{ini}} \) 和虚拟初始输出轨迹 \( \mathbf{y_{ini}} \)，使得它们满足以下方程
+	定义虚拟初始输入轨迹 \( \mathbf{u}_{\mathrm{ini}} \) 和虚拟初始输出轨迹 \( \mathbf{y}_{\mathrm{ini}} \)，使得它们满足以下方程
 	\begin{equation}
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g = \begin{bmatrix} \mathbf{u_{ini}} \\ \mathbf{y_{ini}} \\ 0 \\ \mathbf{d} \end{bmatrix}
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g = \begin{bmatrix} \mathbf{u}_{\mathrm{ini}} \\ \mathbf{y}_{\mathrm{ini}} \\ 0 \\ \mathbf{d} \end{bmatrix}
 		\label{eq:virtual_initial}
 	\end{equation}
-	上述方程表明，当系统的初始输入输出轨迹为 \( \mathbf{u_{ini}} \) 和 \( \mathbf{y_{ini}} \) 时，系统的自由响应为 \( \mathbf{d} \)。需要注意的是，定义虚拟初始轨迹的原因是：在ILC系统中，当时间到达 \( N+1 \) 时，系统状态直接被重置为 \( x_0 \)，因此ILC系统可能没有实际的初始轨迹。于是存在 \( g_{k+1} \) 和 \( g_k \) 使得以下方程成立
+	上述方程表明，当系统的初始输入输出轨迹为 \( \mathbf{u}_{\mathrm{ini}} \) 和 \( \mathbf{y}_{\mathrm{ini}} \) 时，系统的自由响应为 \( \mathbf{d} \)。需要注意的是，定义虚拟初始轨迹的原因是：在迭代学习控制系统中，当时间到达 \( T \) 时，系统状态直接被重置为 \( x_0 \)，因此迭代学习控制系统可能没有实际的初始轨迹。于是存在 \( g_{k+1} \) 和 \( g_k \) 使得以下方程成立
 	\begin{equation}
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g_{k+1} = \begin{bmatrix} \mathbf{u_{ini}} \\ \mathbf{y_{ini}} \\ \mathbf{u_{k+1}} \\ \mathbf{y_{k+1}} \end{bmatrix}, \quad
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g_{k} = \begin{bmatrix} \mathbf{u_{ini}} \\ \mathbf{y_{ini}} \\ \mathbf{u_k} \\ \mathbf{y_k} \end{bmatrix}
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g_{k+1} = \begin{bmatrix} \mathbf{u}_{\mathrm{ini}} \\ \mathbf{y}_{\mathrm{ini}} \\ \mathbf{u}_{k+1} \\ \mathbf{y}_{k+1} \end{bmatrix}, \quad
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} g_{k} = \begin{bmatrix} \mathbf{u}_{\mathrm{ini}} \\ \mathbf{y}_{\mathrm{ini}} \\ \mathbf{u}_k \\ \mathbf{y}_k \end{bmatrix}
 		\label{eq:g1_g2}
 	\end{equation}
 	将两式相减，可得
 	\begin{equation}
-		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} (g_{k+1}-g_k) = \begin{bmatrix} 0 \\ 0 \\ \mathbf{u_{k+1}} - \mathbf{u_k} \\ \mathbf{y_{k+1}} - \mathbf{y_k} \end{bmatrix}
+		\begin{bmatrix} U_p \\ Y_p \\ U_f \\ Y_f \end{bmatrix} (g_{k+1}-g_k) = \begin{bmatrix} 0 \\ 0 \\ \mathbf{u}_{k+1} - \mathbf{u}_k \\ \mathbf{y}_{k+1} - \mathbf{y}_k \end{bmatrix}
 		\label{eq:g3}
 	\end{equation}
-	利用 Willems' 基本引理，上述方程等价于基于模型的输入输出关系
+	注意到式 \eqref{eq:g3} 中的前两行为零，这意味着该轨迹的初始条件为零。根据 Willems' 基本引理，任意零初始条件的轨迹均可表示为 $\begin{bmatrix} I \\ \mathbf{G} \end{bmatrix}$ 的列向量的线性组合。事实上，$\operatorname{col\,span}(W_0) = \operatorname{col\,span}\!\left( \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} \right)$，即 $W_0$ 的列空间与 $\begin{bmatrix} I \\ \mathbf{G} \end{bmatrix}$ 的列空间重合。因此，\eqref{eq:g3} 中由 Hankel 矩阵分块描述的约束等价于要求 $\begin{bmatrix} \mathbf{u}_{k+1} - \mathbf{u}_k \\ \mathbf{y}_{k+1} - \mathbf{y}_k \end{bmatrix}$ 属于该列空间，由此直接导出
 	\begin{equation}
-		\mathbf{y_{k+1}} - \mathbf{y_k} = \mathbf{G} (\mathbf{u_{k+1}} - \mathbf{u_k})
+		\mathbf{y}_{k+1} - \mathbf{y}_k = \mathbf{G} (\mathbf{u}_{k+1} - \mathbf{u}_k)
 		\label{eq:diff_io}
 	\end{equation}
-	将 \( \mathbf{y_k} = \mathbf{G} \mathbf{u_k} + \mathbf{d} \) 代入上式，可得
+	将 \( \mathbf{y}_k = \mathbf{G} \mathbf{u}_k + \mathbf{d} \) 代入上式，可得
 	\begin{equation}
-		\mathbf{y_{k+1}} = \mathbf{G} \mathbf{u_{k+1}} + \mathbf{d}
+		\mathbf{y}_{k+1} = \mathbf{G} \mathbf{u}_{k+1} + \mathbf{d}
 		\label{eq:io_relation}
 	\end{equation}
-	由此可知，\eqref{eq:constraint_noilc} 的约束部分等价于基于模型的范数最优ILC算法的约束部分。
+	由此可知，\eqref{eq:constraint_noilc} 的约束部分等价于基于模型的范数最优迭代学习控制算法的约束部分。证毕。
 \end{proof}
 
-\begin{proposition}
+\begin{lemma}
+	\label{lem:solution_noilc}
 	\eqref{eq:opt_noilc} \eqref{eq:constraint_noilc} 描述的优化问题的解析解由下式给出：
 	\begin{equation}
-		\mathbf{u_{k+1}} = \mathbf{u_k} + \begin{bmatrix} I_{mL} \\ 0_{pL,mL} \end{bmatrix}^\top W_0 (W_0^\top S W_0)^+ W_0^\top S \begin{bmatrix} 0_{mL,1} \\ \mathbf{e_k} \end{bmatrix},
+		\mathbf{u}_{k+1} = \mathbf{u}_k + \begin{bmatrix} I_{mL} \\ 0_{pL,mL} \end{bmatrix}^\top W_0 (W_0^\top S W_0)^+ W_0^\top S \begin{bmatrix} 0_{mL,1} \\ \mathbf{e}_k \end{bmatrix},
 		\label{eq:solution_noilc}
 	\end{equation}
-	其中 \( I_m \) 表示 \( m \times m \) 单位矩阵；\( 0_{m,n} \) 表示 \( m \times n \) 零矩阵；\( + \) 表示伪逆；\( S = \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} \)；\( W_0 \) 为零初始条件响应矩阵，可通过算法 \ref{alg:zero_initial_matrix} 求得（Markovsky and Rapisarda, 2008）。
-\end{proposition}
+	其中 \( I_m \) 表示 \( m \times m \) 单位矩阵；\( 0_{m,n} \) 表示 \( m \times n \) 零矩阵；\( S = \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} \)；\( W_0 \) 为零初始条件响应矩阵，可通过算法 \ref{alg:zero_initial_matrix} 求得。
+\end{lemma}
 
 \begin{proof}
-	零初始条件响应矩阵 \( W_0 \) 具有以下性质（Markovsky and Rapisarda, 2008）：
+	零初始条件响应矩阵 \( W_0 \) 具有以下性质\upcite{markovsky2008}：
 	\begin{equation}
 		\operatorname{col\,span}(W_0) = \operatorname{col\,span}\left( \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} \right)
 		\label{eq:W0_property}
 	\end{equation}
-	因此，对于任意输入差值 \( \mathbf{u_{k+1}} - \mathbf{u_k} \)，存在 \( g_k \) 使得
+	因此，对于任意输入差值 \( \mathbf{u}_{k+1} - \mathbf{u}_k \)，存在 \( g_k \) 使得
 	\begin{equation}
-		W_0 g_k = \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} (\mathbf{u_{k+1}} - \mathbf{u_k}) = \begin{bmatrix} \mathbf{u_{k+1}} - \mathbf{u_k} \\ \mathbf{y_{k+1}} - \mathbf{y_k} \end{bmatrix}
+		\begin{aligned}
+			W_0 g_k &= \begin{bmatrix} I \\ \mathbf{G} \end{bmatrix} (\mathbf{u}_{k+1} - \mathbf{u}_k) \\
+			&= \begin{bmatrix} \mathbf{u}_{k+1} - \mathbf{u}_k \\ \mathbf{y}_{k+1} - \mathbf{y}_k \end{bmatrix}
+		\end{aligned}
 		\label{eq:W0_g}
 	\end{equation}
 	利用上式，优化问题 \eqref{eq:opt_noilc} 和 \eqref{eq:constraint_noilc} 可重写为
 	\begin{equation}
-		\mathbf{u_{k+1}} = \arg \min_{\mathbf{u_{k+1}}} \| \mathbf{e_{k+1}} \|_Q^2 + \| \mathbf{u_{k+1}} - \mathbf{u_k} \|_R^2
+		\mathbf{u}_{k+1} = \arg \min_{\mathbf{u}_{k+1}} \| \mathbf{e}_{k+1} \|_Q^2 + \| \mathbf{u}_{k+1} - \mathbf{u}_k \|_R^2
 	\end{equation}
 	满足约束
 	\begin{equation}
-		\begin{bmatrix} \mathbf{u_{k+1}} - \mathbf{u_k} \\ \mathbf{y_{k+1}} - \mathbf{y_k} \end{bmatrix} = W_0 g_k, \quad \mathbf{e_{k+1}} = \mathbf{r} - \mathbf{y_{k+1}}
+		\begin{bmatrix} \mathbf{u}_{k+1} - \mathbf{u}_k \\ \mathbf{y}_{k+1} - \mathbf{y}_k \end{bmatrix} = W_0 g_k, \quad \mathbf{e}_{k+1} = \mathbf{r} - \mathbf{y}_{k+1}
 		\label{eq:constrained_opt}
 	\end{equation}
-	注意到 \( \mathbf{e_{k+1}} = \mathbf{e_k} - (\mathbf{y_{k+1}} - \mathbf{y_k}) \)，且 \( \mathbf{e_k} = \mathbf{r} - \mathbf{y_k} \)。令 \( \mathbf{\Delta u} = \mathbf{u_{k+1}} - \mathbf{u_k} \)，\( \mathbf{\Delta y} = \mathbf{y_{k+1}} - \mathbf{y_k} \)。由 \eqref{eq:W0_g} 知 \( \mathbf{\Delta u} = [I \ 0] W_0 g_k \)，\( \mathbf{\Delta y} = [0 \ I] W_0 g_k \)。则代价函数可表示为关于 \( g_k \) 的二次型：
+	注意到 \( \mathbf{e}_{k+1} = \mathbf{e}_k - (\mathbf{y}_{k+1} - \mathbf{y}_k) \)，且 \( \mathbf{e}_k = \mathbf{r} - \mathbf{y}_k \)。令 \( \mathbf{\Delta u} = \mathbf{u}_{k+1} - \mathbf{u}_k \)，\( \mathbf{\Delta y} = \mathbf{y}_{k+1} - \mathbf{y}_k \)。由 \eqref{eq:W0_g} 知 \( \mathbf{\Delta u} = [I \quad 0] W_0 g_k \)，\( \mathbf{\Delta y} = [0 \quad I] W_0 g_k \)。则代价函数可表示为关于 \( g_k \) 的二次型：
 	\begin{align*}
-		J(g_k) &= \| \mathbf{e_k} - \mathbf{\Delta y} \|_Q^2 + \| \mathbf{\Delta u} \|_R^2 \\
-		&= \left( \mathbf{e_k} - [0 \ I] W_0 g_k \right)^\top Q \left( \mathbf{e_k} - [0 \ I] W_0 g_k \right) + \left( [I \ 0] W_0 g_k \right)^\top R \left( [I \ 0] W_0 g_k \right)
+		J(g_k) &= \| \mathbf{e}_k - \mathbf{\Delta y} \|_Q^2 + \| \mathbf{\Delta u} \|_R^2 \\
+		&= \left( \mathbf{e}_k - [0 \quad I] W_0 g_k \right)^\top Q \left( \mathbf{e}_k - [0 \quad I] W_0 g_k \right) + \left( [I \quad 0] W_0 g_k \right)^\top R \left( [I \quad 0] W_0 g_k \right)
 	\end{align*}
 	展开并忽略常数项，得
 	\[
-	J(g_k) = -2 \mathbf{e_k}^\top Q [0 \ I] W_0 g_k + g_k^\top W_0^\top \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} W_0 g_k + Const
+	J(g_k) = -2 \mathbf{e}_k^\top Q [0 \quad I] W_0 g_k + g_k^\top W_0^\top \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} W_0 g_k + Const
 	\]
-	记 \( S = \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} \)，则 \( J(g_k) = g_k^\top (W_0^\top S W_0) g_k - 2 \mathbf{e_k}^\top [0 \ I] W_0 g_k + Const \)。对 \( g_k \) 求导并令导数为零得：
+	记 \( S = \begin{bmatrix} R & 0 \\ 0 & Q \end{bmatrix} \)，则 \( J(g_k) = g_k^\top (W_0^\top S W_0) g_k - 2 \mathbf{e}_k^\top [0 \quad I] W_0 g_k + Const \)。对 \( g_k \) 求导并令导数为零得：
 	\[
-	2 W_0^\top S W_0 g_k - 2 W_0^\top \begin{bmatrix} 0 \\ I \end{bmatrix} \mathbf{e_k} = 0,
+	2 W_0^\top S W_0 g_k - 2 W_0^\top \begin{bmatrix} 0 \\ I \end{bmatrix} \mathbf{e}_k = 0,
 	\]
 	即
 	\[
-	W_0^\top S W_0 g_k = W_0^\top \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix}
+	W_0^\top S W_0 g_k = W_0^\top \begin{bmatrix} 0 \\ \mathbf{e}_k \end{bmatrix}
 	\]
 	由于 \( W_0^\top S W_0 \) 可能奇异，其最小二乘解为
 	\[
-	g_k = (W_0^\top S W_0)^+ W_0^\top \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix}
+	g_k = (W_0^\top S W_0)^+ W_0^\top \begin{bmatrix} 0 \\ \mathbf{e}_k \end{bmatrix}
 	\]
-	代入 \( \mathbf{\Delta u} = [I \ 0] W_0 g_k \)，得
+	代入 \( \mathbf{\Delta u} = [I \quad 0] W_0 g_k \)，得
 	\begin{equation}
-		\mathbf{\Delta u} = [I \ 0] W_0 (W_0^\top S W_0)^+ W_0^\top \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix}
+		\mathbf{\Delta u} = [I \quad 0] W_0 (W_0^\top S W_0)^+ W_0^\top \begin{bmatrix} 0 \\ \mathbf{e}_k \end{bmatrix}
 		\label{eq:delta_u}
 	\end{equation}
 	因此，
 	\begin{equation}
-		\mathbf{u_{k+1}} = \mathbf{u_k} + \begin{bmatrix} I \\ 0 \end{bmatrix}^\top W_0 (W_0^\top S W_0)^+ W_0^\top S \begin{bmatrix} 0 \\ \mathbf{e_k} \end{bmatrix}
+		\mathbf{u}_{k+1} = \mathbf{u}_k + \begin{bmatrix} I \\ 0 \end{bmatrix}^\top W_0 (W_0^\top S W_0)^+ W_0^\top S \begin{bmatrix} 0 \\ \mathbf{e}_k \end{bmatrix}
 		\label{eq:solution_step}
 	\end{equation}
 	证毕。
 \end{proof}
+
+\section{本章小结}
+
+本章首先引入了数据Hankel矩阵及相关记号，将数据驱动迭代学习控制问题表述为两个子问题：最短数据生成与控制律设计。针对第一个子问题，给出了最短测试实验引理及其证明——每一步只需避开一个低维仿射集，联合Hankel矩阵的秩便可严格增加$1$，直至达到理论上界$Lm+n$，从而以理论最短数据长度满足Willems'基本引理的应用条件。针对第二个子问题，基于Willems'基本引理和零初始条件响应矩阵$W_0$，将数据驱动的范数最优迭代学习控制归结为仅依赖数据矩阵的凸优化问题，导出了控制更新律的解析解，并证明了其与基于模型方法的等价性。本章的最短数据生成机制和控制框架共同为第四章的完整算法设计与收敛性分析提供了理论基础。
